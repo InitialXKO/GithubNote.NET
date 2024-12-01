@@ -32,7 +32,7 @@ jobs:
         dotnet-version: 7.0.x
 
     - name: Restore dependencies
-      run: dotnet restore ${{ env.Solution_Name }}
+      run: dotnet restore ${{ env.Solution_Name }} /p:RuntimeIdentifier=win-x64
 
     - name: Build
       run: dotnet build ${{ env.Solution_Name }} --configuration ${{ matrix.configuration }} --no-restore

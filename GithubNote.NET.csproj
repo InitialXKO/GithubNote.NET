@@ -14,7 +14,6 @@
     <WindowsPackageType>None</WindowsPackageType>
     <EnableMsixTooling>true</EnableMsixTooling>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
-    <SelfContained>true</SelfContained>
 
     <!-- Display name -->
     <ApplicationTitle>GithubNote.NET</ApplicationTitle>
@@ -40,8 +39,6 @@
     <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.4.231115000" />
     <PackageReference Include="Markdig" Version="0.33.0" />
-    <PackageReference Include="Microsoft.NETCore.App.Runtime.win-x64" Version="8.0.0" />
-    <PackageReference Include="Microsoft.WindowsDesktop.App.Runtime.win-x64" Version="8.0.0" />
   </ItemGroup>
 
 </Project>
