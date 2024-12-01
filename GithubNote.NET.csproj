@@ -14,6 +14,8 @@
     <WindowsPackageType>None</WindowsPackageType>
     <EnableMsixTooling>true</EnableMsixTooling>
     <Platform>x64</Platform>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <PublishProfile>win-x64</PublishProfile>
 
     <!-- Display name -->
     <ApplicationTitle>GithubNote.NET</ApplicationTitle>
