@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net8.0-windows10.0.19041.0</TargetFrameworks>
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
     <OutputType>WinExe</OutputType>
     <RootNamespace>GithubNote.NET</RootNamespace>
     <UseMaui>true</UseMaui>
@@ -14,8 +14,8 @@
     <WindowsPackageType>None</WindowsPackageType>
     <EnableMsixTooling>true</EnableMsixTooling>
     <Platform>x64</Platform>
-    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
-    <PublishProfile>win-x64</PublishProfile>
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+    <SelfContained>true</SelfContained>
 
     <!-- Display name -->
     <ApplicationTitle>GithubNote.NET</ApplicationTitle>
@@ -40,6 +40,8 @@
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.4.231115000" />
+    <PackageReference Include="Microsoft.NETCore.App.Runtime.win-x64" Version="8.0.0" />
+    <PackageReference Include="Microsoft.WindowsDesktop.App.Runtime.win-x64" Version="8.0.0" />
     <PackageReference Include="Markdig" Version="0.33.0" />
   </ItemGroup>
 
