@@ -1,15 +1,21 @@
-using Bunit;
-using GithubNote.NET.Models;
+using Microsoft.Maui.Controls.Testing;
 using Moq;
 using Xunit;
+using GithubNote.NET.Services;
+using GithubNote.NET.UI.Controls;
+using GithubNote.NET.Models;
 
 namespace GithubNote.NET.Tests.UI.Components
 {
-    public class NoteEditorTests : TestBase
+    public class NoteEditorTests : IClassFixture<MauiAppFixture>
     {
+        private readonly Mock<INoteService> _noteServiceMock;
+        private readonly Mock<IThemeService> _themeServiceMock;
+
         public NoteEditorTests()
         {
-            SetupDefaultMocks();
+            _noteServiceMock = new Mock<INoteService>();
+            _themeServiceMock = new Mock<IThemeService>();
         }
 
         [Fact]
@@ -23,20 +29,26 @@ namespace GithubNote.NET.Tests.UI.Components
                 Content = "Test Content" 
             };
 
-            MockNoteService
+            _noteServiceMock
                 .Setup(x => x.GetNoteAsync("1"))
                 .ReturnsAsync(note);
 
             // Act
-            var cut = RenderComponent<NoteEditor>(parameters => parameters
-                .Add(p => p.NoteId, "1"));
+            var app = new App();
+            var noteEditor = new NoteEditor
+            {
+                NoteService = _noteServiceMock.Object,
+                ThemeService = _themeServiceMock.Object
+            };
+            app.MainPage = noteEditor;
+            await noteEditor.LoadNote("1");
 
             // Assert
-            var titleInput = cut.Find(".note-title");
-            var contentInput = cut.Find(".note-content");
+            var titleInput = noteEditor.FindByName<Editor>("titleInput");
+            var contentInput = noteEditor.FindByName<Editor>("contentInput");
             
-            Assert.Equal("Test Note", titleInput.GetAttribute("value"));
-            Assert.Equal("Test Content", contentInput.TextContent);
+            Assert.Equal("Test Note", titleInput.Text);
+            Assert.Equal("Test Content", contentInput.Text);
         }
 
         [Fact]
@@ -50,23 +62,29 @@ namespace GithubNote.NET.Tests.UI.Components
                 Content = "Test Content" 
             };
 
-            MockNoteService
+            _noteServiceMock
                 .Setup(x => x.SaveNoteAsync(It.IsAny<Note>()))
                 .ReturnsAsync(note);
 
             // Act
-            var cut = RenderComponent<NoteEditor>();
+            var app = new App();
+            var noteEditor = new NoteEditor
+            {
+                NoteService = _noteServiceMock.Object,
+                ThemeService = _themeServiceMock.Object
+            };
+            app.MainPage = noteEditor;
             
-            var titleInput = cut.Find(".note-title");
-            var contentInput = cut.Find(".note-content");
-            var saveButton = cut.Find(".save-button");
+            var titleInput = noteEditor.FindByName<Editor>("titleInput");
+            var contentInput = noteEditor.FindByName<Editor>("contentInput");
+            var saveButton = noteEditor.FindByName<Button>("saveButton");
 
-            await cut.InvokeAsync(() => titleInput.Change("Test Note"));
-            await cut.InvokeAsync(() => contentInput.Change("Test Content"));
-            await cut.InvokeAsync(() => saveButton.Click());
+            titleInput.Text = "Test Note";
+            contentInput.Text = "Test Content";
+            await saveButton.InvokeAsync(() => saveButton.Click());
 
             // Assert
-            MockNoteService.Verify(x => x.SaveNoteAsync(It.Is<Note>(n => 
+            _noteServiceMock.Verify(x => x.SaveNoteAsync(It.Is<Note>(n => 
                 n.Title == "Test Note" && 
                 n.Content == "Test Content")), Times.Once);
         }
@@ -75,15 +93,21 @@ namespace GithubNote.NET.Tests.UI.Components
         public void NoteEditor_ShowsEmptyEditor_WhenCreatingNewNote()
         {
             // Act
-            var cut = RenderComponent<NoteEditor>(parameters => parameters
-                .Add(p => p.IsNewNote, true));
+            var app = new App();
+            var noteEditor = new NoteEditor
+            {
+                NoteService = _noteServiceMock.Object,
+                ThemeService = _themeServiceMock.Object
+            };
+            app.MainPage = noteEditor;
+            noteEditor.IsNewNote = true;
 
             // Assert
-            var titleInput = cut.Find(".note-title");
-            var contentInput = cut.Find(".note-content");
+            var titleInput = noteEditor.FindByName<Editor>("titleInput");
+            var contentInput = noteEditor.FindByName<Editor>("contentInput");
             
-            Assert.Equal("New Note", titleInput.GetAttribute("value"));
-            Assert.Empty(contentInput.TextContent);
+            Assert.Equal("New Note", titleInput.Text);
+            Assert.Empty(contentInput.Text);
         }
 
         [Fact]
@@ -98,48 +122,60 @@ namespace GithubNote.NET.Tests.UI.Components
                 LastModified = DateTime.UtcNow
             };
 
-            MockNoteService
+            _noteServiceMock
                 .Setup(x => x.SaveNoteAsync(It.IsAny<Note>()))
                 .ReturnsAsync(savedNote);
 
             // Act
-            var cut = RenderComponent<NoteEditor>();
+            var app = new App();
+            var noteEditor = new NoteEditor
+            {
+                NoteService = _noteServiceMock.Object,
+                ThemeService = _themeServiceMock.Object
+            };
+            app.MainPage = noteEditor;
             
-            var titleInput = cut.Find(".note-title");
-            var contentInput = cut.Find(".note-content");
-            var saveButton = cut.Find(".save-button");
+            var titleInput = noteEditor.FindByName<Editor>("titleInput");
+            var contentInput = noteEditor.FindByName<Editor>("contentInput");
+            var saveButton = noteEditor.FindByName<Button>("saveButton");
 
-            await cut.InvokeAsync(() => titleInput.Change("Test Note"));
-            await cut.InvokeAsync(() => contentInput.Change("Test Content"));
-            await cut.InvokeAsync(() => saveButton.Click());
+            titleInput.Text = "Test Note";
+            contentInput.Text = "Test Content";
+            await saveButton.InvokeAsync(() => saveButton.Click());
 
             // Assert
-            var lastModifiedText = cut.Find(".last-modified");
-            Assert.Contains(savedNote.LastModified.ToString(), lastModifiedText.TextContent);
-            Assert.Equal("Saved Note", titleInput.GetAttribute("value"));
-            Assert.Equal("Saved Content", contentInput.TextContent);
+            var lastModifiedText = noteEditor.FindByName<Label>("lastModifiedText");
+            Assert.Contains(savedNote.LastModified.ToString(), lastModifiedText.Text);
+            Assert.Equal("Saved Note", titleInput.Text);
+            Assert.Equal("Saved Content", contentInput.Text);
         }
 
         [Fact]
         public async Task NoteEditor_ShowsErrorMessage_WhenSaveFails()
         {
             // Arrange
-            MockNoteService
+            _noteServiceMock
                 .Setup(x => x.SaveNoteAsync(It.IsAny<Note>()))
                 .ThrowsAsync(new Exception("Save failed"));
 
             // Act
-            var cut = RenderComponent<NoteEditor>();
+            var app = new App();
+            var noteEditor = new NoteEditor
+            {
+                NoteService = _noteServiceMock.Object,
+                ThemeService = _themeServiceMock.Object
+            };
+            app.MainPage = noteEditor;
             
-            var titleInput = cut.Find(".note-title");
-            var saveButton = cut.Find(".save-button");
+            var titleInput = noteEditor.FindByName<Editor>("titleInput");
+            var saveButton = noteEditor.FindByName<Button>("saveButton");
 
-            await cut.InvokeAsync(() => titleInput.Change("Test Note"));
-            await cut.InvokeAsync(() => saveButton.Click());
+            titleInput.Text = "Test Note";
+            await saveButton.InvokeAsync(() => saveButton.Click());
 
             // Assert
-            var errorMessage = cut.Find(".error-message");
-            Assert.Contains("Failed to save note", errorMessage.TextContent);
+            var errorMessage = noteEditor.FindByName<Label>("errorMessage");
+            Assert.Contains("Failed to save note", errorMessage.Text);
         }
     }
 }
