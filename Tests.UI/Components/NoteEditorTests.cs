@@ -1,21 +1,22 @@
-using Microsoft.Maui.Controls.Testing;
+using Microsoft.Maui.Controls;
 using Moq;
 using Xunit;
 using GithubNote.NET.Services;
 using GithubNote.NET.UI.Controls;
-using GithubNote.NET.Models;
 
 namespace GithubNote.NET.Tests.UI.Components
 {
-    public class NoteEditorTests : IClassFixture<MauiAppFixture>
+    public class NoteEditorTests
     {
         private readonly Mock<INoteService> _noteServiceMock;
         private readonly Mock<IThemeService> _themeServiceMock;
+        private readonly IDispatcher _dispatcher;
 
         public NoteEditorTests()
         {
             _noteServiceMock = new Mock<INoteService>();
             _themeServiceMock = new Mock<IThemeService>();
+            _dispatcher = Application.Current?.Dispatcher ?? new DispatcherMock();
         }
 
         [Fact]
@@ -34,13 +35,12 @@ namespace GithubNote.NET.Tests.UI.Components
                 .ReturnsAsync(note);
 
             // Act
-            var app = new App();
-            var noteEditor = new NoteEditor
+            var noteEditor = new NoteEditor(_dispatcher)
             {
                 NoteService = _noteServiceMock.Object,
                 ThemeService = _themeServiceMock.Object
             };
-            app.MainPage = noteEditor;
+
             await noteEditor.LoadNote("1");
 
             // Assert
@@ -67,13 +67,11 @@ namespace GithubNote.NET.Tests.UI.Components
                 .ReturnsAsync(note);
 
             // Act
-            var app = new App();
-            var noteEditor = new NoteEditor
+            var noteEditor = new NoteEditor(_dispatcher)
             {
                 NoteService = _noteServiceMock.Object,
                 ThemeService = _themeServiceMock.Object
             };
-            app.MainPage = noteEditor;
             
             var titleInput = noteEditor.FindByName<Editor>("titleInput");
             var contentInput = noteEditor.FindByName<Editor>("contentInput");
@@ -81,7 +79,7 @@ namespace GithubNote.NET.Tests.UI.Components
 
             titleInput.Text = "Test Note";
             contentInput.Text = "Test Content";
-            await saveButton.InvokeAsync(() => saveButton.Click());
+            await saveButton.Command.ExecuteAsync(null);
 
             // Assert
             _noteServiceMock.Verify(x => x.SaveNoteAsync(It.Is<Note>(n => 
@@ -93,14 +91,12 @@ namespace GithubNote.NET.Tests.UI.Components
         public void NoteEditor_ShowsEmptyEditor_WhenCreatingNewNote()
         {
             // Act
-            var app = new App();
-            var noteEditor = new NoteEditor
+            var noteEditor = new NoteEditor(_dispatcher)
             {
                 NoteService = _noteServiceMock.Object,
-                ThemeService = _themeServiceMock.Object
+                ThemeService = _themeServiceMock.Object,
+                IsNewNote = true
             };
-            app.MainPage = noteEditor;
-            noteEditor.IsNewNote = true;
 
             // Assert
             var titleInput = noteEditor.FindByName<Editor>("titleInput");
@@ -127,13 +123,11 @@ namespace GithubNote.NET.Tests.UI.Components
                 .ReturnsAsync(savedNote);
 
             // Act
-            var app = new App();
-            var noteEditor = new NoteEditor
+            var noteEditor = new NoteEditor(_dispatcher)
             {
                 NoteService = _noteServiceMock.Object,
                 ThemeService = _themeServiceMock.Object
             };
-            app.MainPage = noteEditor;
             
             var titleInput = noteEditor.FindByName<Editor>("titleInput");
             var contentInput = noteEditor.FindByName<Editor>("contentInput");
@@ -141,7 +135,7 @@ namespace GithubNote.NET.Tests.UI.Components
 
             titleInput.Text = "Test Note";
             contentInput.Text = "Test Content";
-            await saveButton.InvokeAsync(() => saveButton.Click());
+            await saveButton.Command.ExecuteAsync(null);
 
             // Assert
             var lastModifiedText = noteEditor.FindByName<Label>("lastModifiedText");
@@ -159,23 +153,37 @@ namespace GithubNote.NET.Tests.UI.Components
                 .ThrowsAsync(new Exception("Save failed"));
 
             // Act
-            var app = new App();
-            var noteEditor = new NoteEditor
+            var noteEditor = new NoteEditor(_dispatcher)
             {
                 NoteService = _noteServiceMock.Object,
                 ThemeService = _themeServiceMock.Object
             };
-            app.MainPage = noteEditor;
             
             var titleInput = noteEditor.FindByName<Editor>("titleInput");
             var saveButton = noteEditor.FindByName<Button>("saveButton");
 
             titleInput.Text = "Test Note";
-            await saveButton.InvokeAsync(() => saveButton.Click());
+            await saveButton.Command.ExecuteAsync(null);
 
             // Assert
             var errorMessage = noteEditor.FindByName<Label>("errorMessage");
             Assert.Contains("Failed to save note", errorMessage.Text);
         }
+    }
+
+    // Mock dispatcher for testing
+    internal class DispatcherMock : IDispatcher
+    {
+        public bool IsDispatchRequired => false;
+
+        public IDispatcherTimer CreateTimer() => throw new NotImplementedException();
+
+        public bool Dispatch(Action action)
+        {
+            action();
+            return true;
+        }
+
+        public bool DispatchDelayed(TimeSpan delay, Action action) => true;
     }
 }
