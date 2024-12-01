@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="GithubNote.NET.UI.Controls.NoteEditor">
+    <Grid RowDefinitions="Auto,Auto,*,Auto" Padding="10">
+        <Entry Grid.Row="0"
+               Placeholder="Title"
+               Text="{Binding Title}"
+               Margin="0,0,0,10"/>
+        
+        <FlexLayout Grid.Row="1"
+                    Wrap="Wrap"
+                    BindableLayout.ItemsSource="{Binding Categories}">
+            <BindableLayout.ItemTemplate>
+                <DataTemplate>
+                    <Frame Padding="5,2" Margin="2"
+                           BackgroundColor="{StaticResource Primary}"
+                           CornerRadius="10">
+                        <Frame.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding RemoveCategoryCommand}"/>
+                        </Frame.GestureRecognizers>
+                        <Label Text="{Binding}"
+                               TextColor="White"
+                               FontSize="10"/>
+                    </Frame>
+                </DataTemplate>
+            </BindableLayout.ItemTemplate>
+        </FlexLayout>
+        
+        <Editor Grid.Row="2"
+                Placeholder="Note content..."
+                Text="{Binding Content}"
+                AutoSize="TextChanges"
+                Margin="0,10"/>
+        
+        <Grid Grid.Row="3" ColumnDefinitions="*,Auto,Auto">
+            <Entry Grid.Column="0"
+                   Placeholder="Add category"
+                   Text="{Binding NewCategory}"/>
+            <Button Grid.Column="1"
+                    Text="Add"
+                    Command="{Binding AddCategoryCommand}"
+                    Style="{StaticResource SmallButton}"
+                    Margin="5,0"/>
+            <Button Grid.Column="2"
+                    Text="Save"
+                    Command="{Binding SaveCommand}"
+                    Style="{StaticResource PrimaryButton}"/>
+        </Grid>
+    </Grid>
+</ContentView>

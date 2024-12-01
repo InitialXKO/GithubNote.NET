@@ -1,0 +1,207 @@
+@using GithubNote.NET.Models
+@using GithubNote.NET.Services.UI
+@using GithubNote.NET.Services.UI.Theme
+@inject INoteUIService NoteService
+@inject IThemeService ThemeService
+@implements IDisposable
+
+<div class="note-editor @ThemeService.GetThemeClass()">
+    @if (_note != null)
+    {
+        <div class="editor-header">
+            <div class="title-section">
+                <input type="text" 
+                       class="note-title" 
+                       value="@_note.Title" 
+                       @oninput="OnTitleChanged"
+                       placeholder="Enter note title..." />
+                <div class="metadata">
+                    <span class="last-modified">
+                        Last modified: @_note.LastModified.ToLocalTime().ToString("g")
+                    </span>
+                </div>
+            </div>
+            <div class="actions">
+                <button class="action-button save-button @(_isDirty ? "active" : "")"
+                        @onclick="SaveNote"
+                        disabled="@(!_isDirty)">
+                    <i class="fas fa-save"></i>
+                    Save
+                </button>
+                <button class="action-button delete-button"
+                        @onclick="DeleteNote">
+                    <i class="fas fa-trash"></i>
+                    Delete
+                </button>
+            </div>
+        </div>
+
+        <div class="editor-toolbar">
+            <button class="toolbar-button" @onclick="() => FormatText('**', '**')">
+                <i class="fas fa-bold"></i>
+            </button>
+            <button class="toolbar-button" @onclick="() => FormatText('*', '*')">
+                <i class="fas fa-italic"></i>
+            </button>
+            <button class="toolbar-button" @onclick="() => FormatText('# ', '')">
+                <i class="fas fa-heading"></i>
+            </button>
+            <button class="toolbar-button" @onclick="() => FormatText('- ', '')">
+                <i class="fas fa-list"></i>
+            </button>
+            <button class="toolbar-button" @onclick="() => FormatText('```\n', '\n```')">
+                <i class="fas fa-code"></i>
+            </button>
+            <button class="toolbar-button" @onclick="() => FormatText('[', '](url)')">
+                <i class="fas fa-link"></i>
+            </button>
+        </div>
+
+        <div class="editor-main">
+            <div class="content-section">
+                <textarea class="note-content"
+                          @bind="_note.Content"
+                          @bind:event="oninput"
+                          @onkeydown="OnKeyDown"
+                          placeholder="Start writing your note..."
+                          rows="20"></textarea>
+            </div>
+            <div class="preview-section">
+                <div class="preview-content markdown-body">
+                    @((MarkupString)_markdownHtml)
+                </div>
+            </div>
+        </div>
+
+        <div class="editor-footer">
+            <div class="word-count">
+                Words: @_wordCount | Characters: @_charCount
+            </div>
+            <div class="preview-toggle">
+                <label class="toggle-label">
+                    <input type="checkbox" 
+                           @bind="_showPreview" />
+                    Show Preview
+                </label>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i>
+            Loading...
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public string NoteId { get; set; }
+
+    private Note _note;
+    private bool _isDirty;
+    private bool _showPreview = true;
+    private string _markdownHtml = "";
+    private int _wordCount;
+    private int _charCount;
+    private ThemeOptions _themeOptions;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _themeOptions = await ThemeService.GetThemeOptionsAsync();
+        ThemeService.ThemeChanged += OnThemeChanged;
+
+        if (!string.IsNullOrEmpty(NoteId))
+        {
+            await LoadNote();
+        }
+        else
+        {
+            _note = await NoteService.CreateNewNoteAsync();
+        }
+    }
+
+    private async Task LoadNote()
+    {
+        _note = await NoteService.GetNoteAsync(NoteId);
+        if (_note != null)
+        {
+            UpdatePreview();
+            UpdateWordCount();
+        }
+    }
+
+    private void OnTitleChanged(ChangeEventArgs e)
+    {
+        _note.Title = e.Value.ToString();
+        _isDirty = true;
+    }
+
+    private async Task SaveNote()
+    {
+        if (_isDirty)
+        {
+            _note = await NoteService.SaveNoteAsync(_note);
+            _isDirty = false;
+        }
+    }
+
+    private async Task DeleteNote()
+    {
+        var confirmed = await JSRuntime.InvokeAsync<bool>(
+            "confirm", 
+            "Are you sure you want to delete this note?");
+
+        if (confirmed)
+        {
+            await NoteService.DeleteNoteAsync(_note.Id);
+            NavigationManager.NavigateTo("/notes");
+        }
+    }
+
+    private void FormatText(string prefix, string suffix)
+    {
+        // Implementation for text formatting
+    }
+
+    private void OnKeyDown(KeyboardEventArgs e)
+    {
+        if (e.CtrlKey && e.Key == "s")
+        {
+            SaveNote();
+        }
+    }
+
+    private void UpdatePreview()
+    {
+        if (_showPreview && !string.IsNullOrEmpty(_note?.Content))
+        {
+            _markdownHtml = Markdig.Markdown.ToHtml(_note.Content);
+        }
+    }
+
+    private void UpdateWordCount()
+    {
+        if (string.IsNullOrEmpty(_note?.Content))
+        {
+            _wordCount = 0;
+            _charCount = 0;
+            return;
+        }
+
+        _charCount = _note.Content.Length;
+        _wordCount = _note.Content.Split(new[] { ' ', '\n', '\r' }, 
+            StringSplitOptions.RemoveEmptyEntries).Length;
+    }
+
+    private void OnThemeChanged(object sender, ThemeMode mode)
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        ThemeService.ThemeChanged -= OnThemeChanged;
+    }
+}

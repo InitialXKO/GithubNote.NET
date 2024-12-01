@@ -1,0 +1,77 @@
+@using GithubNote.NET.Services.UI.ErrorHandling
+@implements IDisposable
+@inject IErrorHandlingService ErrorHandlingService
+
+<div class="error-display @(_currentError != null ? "active" : "")">
+    @if (_currentError != null)
+    {
+        <div class="error-alert @GetSeverityClass(_currentError.Severity)">
+            <div class="error-header">
+                <span class="error-title">@GetSeverityText(_currentError.Severity)</span>
+                <button class="close-button" @onclick="DismissError">×</button>
+            </div>
+            <div class="error-message">@_currentError.Message</div>
+            @if (ShowDetails)
+            {
+                <div class="error-details">
+                    <div>Context: @_currentError.Context</div>
+                    <div>Time: @_currentError.Timestamp.ToLocalTime()</div>
+                    <div>ID: @_currentError.CorrelationId</div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public string Context { get; set; }
+
+    [Parameter]
+    public bool ShowDetails { get; set; }
+
+    private ErrorDetails _currentError;
+
+    protected override void OnInitialized()
+    {
+        ErrorHandlingService.OnError += HandleError;
+    }
+
+    public void Dispose()
+    {
+        ErrorHandlingService.OnError -= HandleError;
+    }
+
+    private void HandleError(object sender, ErrorDetails error)
+    {
+        if (error.Context == Context)
+        {
+            _currentError = error;
+            StateHasChanged();
+        }
+    }
+
+    private async Task DismissError()
+    {
+        await ErrorHandlingService.ClearErrorsAsync(Context);
+        _currentError = null;
+    }
+
+    private string GetSeverityClass(ErrorSeverity severity) => severity switch
+    {
+        ErrorSeverity.Info => "info",
+        ErrorSeverity.Warning => "warning",
+        ErrorSeverity.Error => "error",
+        ErrorSeverity.Critical => "critical",
+        _ => "info"
+    };
+
+    private string GetSeverityText(ErrorSeverity severity) => severity switch
+    {
+        ErrorSeverity.Info => "Information",
+        ErrorSeverity.Warning => "Warning",
+        ErrorSeverity.Error => "Error",
+        ErrorSeverity.Critical => "Critical Error",
+        _ => "Information"
+    };
+}

@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewmodels="clr-namespace:GithubNote.NET.UI.ViewModels"
+             x:Class="GithubNote.NET.UI.Pages.NoteEditorPage"
+             Title="{Binding Title}">
+
+    <Grid RowDefinitions="Auto,*,Auto">
+        <!-- 工具栏 -->
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto" Padding="10">
+            <Entry Grid.Column="0"
+                   Text="{Binding CurrentNote.Title}"
+                   FontSize="18"
+                   FontAttributes="Bold"/>
+            
+            <Button Grid.Column="1"
+                    Text="Save"
+                    Command="{Binding SaveCommand}"
+                    IsEnabled="{Binding IsEditing}"
+                    Margin="5,0"/>
+            
+            <Button Grid.Column="2"
+                    Text="Sync"
+                    Command="{Binding SyncCommand}"
+                    IsEnabled="{Binding IsSynced, Converter={StaticResource InverseBoolConverter}}"/>
+        </Grid>
+
+        <!-- 编辑区域 -->
+        <ScrollView Grid.Row="1">
+            <StackLayout Padding="10">
+                <!-- 内容编辑器 -->
+                <Editor Text="{Binding Content}"
+                        HeightRequest="200"
+                        AutoSize="TextChanges"/>
+
+                <!-- 分类 -->
+                <Label Text="Categories"
+                       FontSize="16"
+                       FontAttributes="Bold"
+                       Margin="0,10"/>
+                
+                <FlexLayout BindableLayout.ItemsSource="{Binding Categories}"
+                           Wrap="Wrap">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate>
+                            <Frame Padding="5,2" Margin="2"
+                                   BackgroundColor="{StaticResource Primary}"
+                                   CornerRadius="10">
+                                <StackLayout Orientation="Horizontal">
+                                    <Label Text="{Binding}"
+                                           TextColor="White"
+                                           FontSize="12"
+                                           VerticalOptions="Center"/>
+                                    <Button Text="×"
+                                            Command="{Binding Source={RelativeSource AncestorType={x:Type viewmodels:NoteEditorViewModel}}, Path=RemoveCategoryCommand}"
+                                            CommandParameter="{Binding}"
+                                            TextColor="White"
+                                            BackgroundColor="Transparent"
+                                            FontSize="12"
+                                            Padding="2"/>
+                                </StackLayout>
+                            </Frame>
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </FlexLayout>
+
+                <!-- 添加分类 -->
+                <StackLayout Orientation="Horizontal" Margin="0,5">
+                    <Entry Placeholder="Add category..."
+                           x:Name="CategoryEntry"
+                           HorizontalOptions="FillAndExpand"/>
+                    <Button Text="Add"
+                            Command="{Binding AddCategoryCommand}"
+                            CommandParameter="{Binding Source={x:Reference CategoryEntry}, Path=Text}"/>
+                </StackLayout>
+
+                <!-- 评论 -->
+                <Label Text="Comments"
+                       FontSize="16"
+                       FontAttributes="Bold"
+                       Margin="0,10"/>
+                
+                <CollectionView ItemsSource="{Binding Comments}">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate>
+                            <Frame Margin="0,5" Padding="10">
+                                <StackLayout>
+                                    <Label Text="{Binding Content}"/>
+                                    <Label Text="{Binding CreatedAt, StringFormat='{0:g}'}"
+                                           FontSize="12"
+                                           TextColor="{StaticResource Gray500}"/>
+                                </StackLayout>
+                            </Frame>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+
+                <!-- 添加评论 -->
+                <StackLayout Orientation="Horizontal" Margin="0,5">
+                    <Entry Placeholder="Add comment..."
+                           x:Name="CommentEntry"
+                           HorizontalOptions="FillAndExpand"/>
+                    <Button Text="Add"
+                            Command="{Binding AddCommentCommand}"
+                            CommandParameter="{Binding Source={x:Reference CommentEntry}, Path=Text}"/>
+                </StackLayout>
+
+                <!-- 附件 -->
+                <Label Text="Attachments"
+                       FontSize="16"
+                       FontAttributes="Bold"
+                       Margin="0,10"/>
+                
+                <CollectionView ItemsSource="{Binding Attachments}">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate>
+                            <Frame Margin="0,5" Padding="10">
+                                <Image Source="{Binding Path}"
+                                       HeightRequest="100"
+                                       Aspect="AspectFit"/>
+                            </Frame>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+
+                <!-- 添加附件 -->
+                <Button Text="Add Attachment"
+                        Command="{Binding AddAttachmentCommand}"/>
+            </StackLayout>
+        </ScrollView>
+
+        <!-- 加载指示器 -->
+        <ActivityIndicator Grid.RowSpan="3"
+                          IsVisible="{Binding IsBusy}"
+                          IsRunning="{Binding IsBusy}"
+                          HorizontalOptions="Center"
+                          VerticalOptions="Center"/>
+
+        <!-- 错误消息 -->
+        <Label Grid.RowSpan="3"
+               Text="{Binding ErrorMessage}"
+               IsVisible="{Binding ErrorMessage, Converter={StaticResource StringNotEmptyConverter}}"
+               TextColor="{StaticResource Danger}"
+               HorizontalOptions="Center"
+               VerticalOptions="Center"/>
+    </Grid>
+</ContentPage>

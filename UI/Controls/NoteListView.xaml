@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:GithubNote.NET.UI.Controls"
+             x:Class="GithubNote.NET.UI.Controls.NoteListView">
+    <Grid RowDefinitions="Auto,*">
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Padding="10">
+            <SearchBar Grid.Column="0"
+                       Placeholder="Search notes..."
+                       Text="{Binding SearchText}"
+                       SearchCommand="{Binding SearchCommand}"/>
+            <Button Grid.Column="1"
+                    Text="New Note"
+                    Command="{Binding NewNoteCommand}"
+                    Style="{StaticResource PrimaryButton}"
+                    Margin="5,0,0,0"/>
+        </Grid>
+        
+        <CollectionView Grid.Row="1"
+                        ItemsSource="{Binding Notes}"
+                        SelectionMode="None">
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <controls:NoteCard/>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+            
+            <CollectionView.EmptyView>
+                <StackLayout VerticalOptions="Center" HorizontalOptions="Center">
+                    <Label Text="No notes found"
+                           FontSize="18"
+                           TextColor="{StaticResource Gray500}"/>
+                    <Label Text="Create a new note to get started"
+                           FontSize="14"
+                           TextColor="{StaticResource Gray400}"/>
+                </StackLayout>
+            </CollectionView.EmptyView>
+        </CollectionView>
+    </Grid>
+</ContentView>

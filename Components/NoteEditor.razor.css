@@ -1,0 +1,219 @@
+.note-editor {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing);
+    padding: var(--spacing);
+    height: 100%;
+    font-family: var(--font-family);
+}
+
+.editor-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: calc(var(--spacing) * 2);
+    background-color: var(--background-color);
+    border-radius: var(--border-radius);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.title-section {
+    flex: 1;
+}
+
+.note-title {
+    width: 100%;
+    font-size: 1.5rem;
+    font-weight: 600;
+    padding: calc(var(--spacing) / 2);
+    border: none;
+    border-radius: var(--border-radius);
+    background-color: transparent;
+    color: var(--text-color);
+}
+
+.note-title:focus {
+    outline: none;
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.metadata {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-top: calc(var(--spacing) / 2);
+}
+
+.actions {
+    display: flex;
+    gap: var(--spacing);
+}
+
+.action-button {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--spacing) / 2);
+    padding: calc(var(--spacing) / 2) var(--spacing);
+    border: none;
+    border-radius: var(--border-radius);
+    background-color: transparent;
+    color: var(--text-color);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.action-button:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.action-button.active {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.action-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.editor-toolbar {
+    display: flex;
+    gap: calc(var(--spacing) / 2);
+    padding: var(--spacing);
+    background-color: var(--background-color);
+    border-radius: var(--border-radius);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.toolbar-button {
+    padding: calc(var(--spacing) / 2);
+    border: none;
+    border-radius: var(--border-radius);
+    background-color: transparent;
+    color: var(--text-color);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.toolbar-button:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.editor-main {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing);
+    flex: 1;
+    min-height: 0;
+}
+
+.content-section,
+.preview-section {
+    display: flex;
+    flex-direction: column;
+    background-color: var(--background-color);
+    border-radius: var(--border-radius);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.note-content {
+    flex: 1;
+    padding: var(--spacing);
+    border: none;
+    border-radius: var(--border-radius);
+    resize: none;
+    font-family: var(--code-font-family);
+    font-size: 1rem;
+    line-height: 1.5;
+    color: var(--text-color);
+    background-color: transparent;
+}
+
+.note-content:focus {
+    outline: none;
+}
+
+.preview-content {
+    flex: 1;
+    padding: var(--spacing);
+    overflow-y: auto;
+    color: var(--text-color);
+}
+
+.editor-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing);
+    background-color: var(--background-color);
+    border-radius: var(--border-radius);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.word-count {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.toggle-label {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--spacing) / 2);
+    cursor: pointer;
+}
+
+.loading-spinner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing);
+    padding: calc(var(--spacing) * 2);
+    color: var(--text-secondary);
+}
+
+/* Theme-specific styles */
+.theme-light {
+    --background-color: #ffffff;
+    --text-color: #000000;
+    --text-secondary: #666666;
+}
+
+.theme-dark {
+    --background-color: #1e1e1e;
+    --text-color: #ffffff;
+    --text-secondary: #999999;
+}
+
+/* Markdown preview styles */
+.markdown-body {
+    font-family: var(--font-family);
+    line-height: 1.6;
+}
+
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3 {
+    margin-top: calc(var(--spacing) * 2);
+    margin-bottom: var(--spacing);
+    color: var(--text-color);
+}
+
+.markdown-body code {
+    font-family: var(--code-font-family);
+    background-color: rgba(0, 0, 0, 0.05);
+    padding: 0.2em 0.4em;
+    border-radius: calc(var(--border-radius) / 2);
+}
+
+.markdown-body pre {
+    background-color: rgba(0, 0, 0, 0.05);
+    padding: var(--spacing);
+    border-radius: var(--border-radius);
+    overflow-x: auto;
+}
+
+.markdown-body blockquote {
+    border-left: 4px solid var(--primary-color);
+    margin: var(--spacing) 0;
+    padding-left: var(--spacing);
+    color: var(--text-secondary);
+}
