@@ -1,7 +1,6 @@
 # GithubNote.NET
 
 [![Build GithubNote.NET](https://github.com/InitialXKO/GithubNote.NET/actions/workflows/build.yml/badge.svg)](https://github.com/InitialXKO/GithubNote.NET/actions/workflows/build.yml)
-[![codecov](https://codecov.io/gh/InitialXKO/GithubNote.NET/branch/main/graph/badge.svg)](https://codecov.io/gh/InitialXKO/GithubNote.NET)
 
 A modern note-taking application with GitHub integration built with .NET 7 and Blazor.
 

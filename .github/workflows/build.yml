@@ -38,7 +38,7 @@ jobs:
       run: dotnet build ${{ env.Solution_Name }} --configuration ${{ matrix.configuration }} --no-restore
 
     - name: Test
-      run: dotnet test ${{ env.Test_Project_Path }} --configuration ${{ matrix.configuration }} --no-build --verbosity normal --collect:"XPlat Code Coverage" --results-directory TestResults
+      run: dotnet test ${{ env.Test_Project_Path }} --configuration ${{ matrix.configuration }} --no-build --verbosity normal
 
     - name: Upload test results
       uses: actions/upload-artifact@v3
@@ -47,13 +47,6 @@ jobs:
         name: test-results-${{ matrix.configuration }}
         path: TestResults
         if-no-files-found: error
-
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
-      if: matrix.configuration == 'Release'
-      with:
-        directory: TestResults
-        fail_ci_if_error: true
 
     - name: Publish
       if: matrix.configuration == 'Release'

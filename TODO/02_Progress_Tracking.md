@@ -52,7 +52,6 @@
 #### CI/CD Setup
 - ✅ Automated CI/CD pipeline with GitHub Actions
   - ✅ Automated builds and testing
-  - ✅ Code coverage reporting
   - ✅ Automatic release creation
   - ✅ Build status badges
 
@@ -68,7 +67,7 @@
 ## Project Infrastructure
 ### CI/CD Pipeline
 - Build Status: [![Build GithubNote.NET](https://github.com/InitialXKO/GithubNote.NET/actions/workflows/build.yml/badge.svg)](https://github.com/InitialXKO/GithubNote.NET/actions/workflows/build.yml)
-- Code Coverage: [![codecov](https://codecov.io/gh/InitialXKO/GithubNote.NET/branch/main/graph/badge.svg)](https://codecov.io/gh/InitialXKO/GithubNote.NET)
+- Test Coverage: Tracked via unit tests
 - Automated Releases: ✅
 - Build Matrix: Windows (Debug/Release)
 
