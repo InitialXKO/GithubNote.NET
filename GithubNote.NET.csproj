@@ -31,6 +31,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.0" />
     <PackageReference Include="Microsoft.Maui.Controls" Version="8.0.3" />
     <PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="8.0.3" />
@@ -42,8 +43,20 @@
     <PackageReference Include="Markdig" Version="0.33.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.0" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
-    <PackageReference Include="Microsoft.AspNetCore.App" Version="8.0.0" />
     <PackageReference Include="System.Text.Json" Version="8.0.0" />
+    <PackageReference Include="Moq" Version="4.20.69" />
+    <PackageReference Include="xunit" Version="2.6.2" />
+    <PackageReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="CommunityToolkit.Maui" Version="7.0.1" />
+    <PackageReference Include="CommunityToolkit.Maui.Core" Version="7.0.1" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.5.4">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
+    <PackageReference Include="bunit" Version="1.25.3" />
+    <PackageReference Include="bunit.web" Version="1.25.3" />
+    <PackageReference Include="bunit.core" Version="1.25.3" />
   </ItemGroup>
 
 </Project>

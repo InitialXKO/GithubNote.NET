@@ -6,6 +6,7 @@ using Microsoft.Extensions.Configuration;
 using GithubNote.NET.Models;
 using GithubNote.NET.Cache;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Security.Cryptography;
 using Microsoft.Extensions.Logging;
 

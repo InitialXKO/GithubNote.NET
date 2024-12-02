@@ -52,6 +52,58 @@ namespace GithubNote.NET.Services.Performance
             _optimizationLock = new SemaphoreSlim(1, 1);
         }
 
+        public async Task OptimizeCacheStrategyAsync()
+        {
+            await _optimizationLock.WaitAsync();
+            try
+            {
+                var metrics = await _monitor.GetMetricsAsync();
+                if (metrics.CacheHitCount / (metrics.CacheHitCount + metrics.CacheMissCount) < _thresholds.MinCacheHitRate / 100.0)
+                {
+                    _logger.LogInformation("Cache hit rate is below threshold, optimizing cache strategy");
+                    // Implement cache optimization logic
+                }
+            }
+            finally
+            {
+                _optimizationLock.Release();
+            }
+        }
+
+        public async Task<bool> ShouldPreloadDataAsync(string context)
+        {
+            var metrics = await GetMetricsAsync(context);
+            return metrics.CacheHitRate > _thresholds.MinCacheHitRate &&
+                   metrics.MemoryUsage < _thresholds.MaxMemoryUsage;
+        }
+
+        public async Task UpdateOptimizationSettingsAsync(OptimizationSettings settings)
+        {
+            await _optimizationLock.WaitAsync();
+            try
+            {
+                _thresholds.MaxResponseTime = settings.DefaultCacheExpiration;
+                _thresholds.MaxMemoryUsage = settings.MaxCacheSize;
+                _logger.LogInformation("Updated optimization settings");
+            }
+            finally
+            {
+                _optimizationLock.Release();
+            }
+        }
+
+        public async Task<OptimizationSettings> GetCurrentSettingsAsync()
+        {
+            return new OptimizationSettings
+            {
+                MaxCacheSize = (int)_thresholds.MaxMemoryUsage,
+                DefaultCacheExpiration = _thresholds.MaxResponseTime,
+                EnablePreloading = true,
+                PreloadBatchSize = 100,
+                ContextPreloadSettings = new Dictionary<string, bool>()
+            };
+        }
+
         public async Task<bool> ShouldOptimizeAsync(string context)
         {
             if (!_metrics.TryGetValue(context, out var metrics))

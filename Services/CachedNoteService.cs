@@ -123,6 +123,42 @@ namespace GithubNote.NET.Services
             return updatedNote;
         }
 
+        public async Task<bool> SyncWithGistAsync(int userId)
+        {
+            var result = await _innerService.SyncWithGistAsync(userId);
+            if (result)
+            {
+                await InvalidateListCache();
+            }
+            return result;
+        }
+
+        public async Task<IEnumerable<Note>> GetRecentNotesAsync(int userId, int count)
+        {
+            return await _cacheService.GetOrAddAsync(
+                $"{NoteListCacheKey}_recent_{userId}_{count}",
+                () => _innerService.GetRecentNotesAsync(userId, count),
+                _listExpiration);
+        }
+
+        public async Task<NoteMetadata> GetNoteMetadataAsync(int noteId)
+        {
+            return await _cacheService.GetOrAddAsync(
+                $"{NoteCachePrefix}metadata_{noteId}",
+                () => _innerService.GetNoteMetadataAsync(noteId),
+                _noteExpiration);
+        }
+
+        public async Task<bool> UpdateMetadataAsync(int noteId, NoteMetadata metadata)
+        {
+            var result = await _innerService.UpdateMetadataAsync(noteId, metadata);
+            if (result)
+            {
+                await InvalidateNoteCache(noteId);
+            }
+            return result;
+        }
+
         private async Task InvalidateNoteCache(int noteId)
         {
             await _cacheService.RemoveAsync($"{NoteCachePrefix}{noteId}");
