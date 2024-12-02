@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Razor">
 
   <PropertyGroup>
-    <TargetFrameworks>net8.0-windows10.0.19041.0</TargetFrameworks>
+    <TargetFrameworks>net8.0-windows10.0.19041.0;net8.0-android</TargetFrameworks>
     <OutputType>WinExe</OutputType>
     <RootNamespace>GithubNote.NET</RootNamespace>
     <UseMaui>true</UseMaui>
@@ -14,8 +14,9 @@
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
     <WindowsPackageType>None</WindowsPackageType>
     <EnablePreviewMsixTooling>true</EnablePreviewMsixTooling>
-    <RuntimeIdentifier>win10-x64</RuntimeIdentifier>
-    <RuntimeIdentifiers>win10-x64</RuntimeIdentifiers>
+    <RuntimeIdentifier Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">win10-x64</RuntimeIdentifier>
+    <RuntimeIdentifiers Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">win10-x64</RuntimeIdentifiers>
+    <RuntimeIdentifiers Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">android-arm64</RuntimeIdentifiers>
 
     <!-- Display name -->
     <ApplicationTitle>GithubNote.NET</ApplicationTitle>
