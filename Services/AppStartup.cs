@@ -4,6 +4,8 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Threading.Tasks;
 using GithubNote.NET.Data;
+using Microsoft.EntityFrameworkCore;
+using GithubNote.NET.Cache;
 
 namespace GithubNote.NET.Services
 {
@@ -30,10 +32,10 @@ namespace GithubNote.NET.Services
                 _logger.LogInformation("Starting application initialization...");
 
                 // 初始化数据库
-                await InitializeDatabaseAsync();
+                InitializeDatabase();
 
                 // 初始化缓存
-                InitializeCache();
+                await InitializeCache();
 
                 _logger.LogInformation("Application initialization completed successfully.");
             }
@@ -44,27 +46,27 @@ namespace GithubNote.NET.Services
             }
         }
 
-        private async Task InitializeDatabaseAsync()
+        private void InitializeDatabase()
         {
             _logger.LogInformation("Initializing database...");
 
             using var scope = _serviceProvider.CreateScope();
-            var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var dbContext = scope.ServiceProvider.GetRequiredService<GithubNoteDbContext>();
 
             // 应用迁移
-            await dbContext.Database.MigrateAsync();
+            dbContext.Database.Migrate();
 
             _logger.LogInformation("Database initialization completed.");
         }
 
-        private void InitializeCache()
+        private async Task InitializeCache()
         {
             _logger.LogInformation("Initializing cache...");
 
             // 清理过期缓存
             using var scope = _serviceProvider.CreateScope();
             var cacheService = scope.ServiceProvider.GetRequiredService<ICacheService>();
-            cacheService.Clear();
+            await cacheService.ClearAsync();
 
             _logger.LogInformation("Cache initialization completed.");
         }

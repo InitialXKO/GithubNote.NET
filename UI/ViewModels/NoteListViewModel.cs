@@ -5,6 +5,8 @@ using System.Windows.Input;
 using CommunityToolkit.Mvvm.Input;
 using GithubNote.NET.Models;
 using GithubNote.NET.Services;
+using GithubNote.NET.Authentication;
+using GithubNote.NET.UI.ViewModels.States;
 
 namespace GithubNote.NET.UI.ViewModels
 {
@@ -16,9 +18,9 @@ namespace GithubNote.NET.UI.ViewModels
         private readonly IUIService _uiService;
         private readonly IStateService _stateService;
         private const string StateKey = "NoteListState";
-        private ObservableCollection<Note> _notes;
-        private string _searchQuery;
-        private string _selectedCategory;
+        private ObservableCollection<Note> _notes = new();
+        private string _searchQuery = string.Empty;
+        private string _selectedCategory = string.Empty;
 
         public NoteListViewModel(
             INoteService noteService,
@@ -32,14 +34,13 @@ namespace GithubNote.NET.UI.ViewModels
             _navigationService = navigationService;
             _uiService = uiService;
             _stateService = stateService;
-            Notes = new ObservableCollection<Note>();
 
             // 命令初始化
-            RefreshCommand = new AsyncRelayCommand(LoadNotesAsync);
-            SearchCommand = new AsyncRelayCommand(SearchNotesAsync);
-            CreateNoteCommand = new AsyncRelayCommand(CreateNoteAsync);
             DeleteNoteCommand = new AsyncRelayCommand<Note>(DeleteNoteAsync);
             FilterByCategoryCommand = new AsyncRelayCommand<string>(FilterByCategoryAsync);
+            SearchCommand = new AsyncRelayCommand(SearchNotesAsync);
+            RefreshCommand = new AsyncRelayCommand(LoadNotesAsync);
+            CreateNoteCommand = new AsyncRelayCommand(CreateNoteAsync);
             SyncCommand = new AsyncRelayCommand(SyncNotesAsync);
 
             Title = "Notes";

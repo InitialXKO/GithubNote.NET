@@ -1,11 +1,20 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.SqlServer;
 using GithubNote.NET.Data;
 using GithubNote.NET.Repositories;
 using GithubNote.NET.Cache;
 using GithubNote.NET.Authentication;
+using GithubNote.NET.Services.Performance;
+using GithubNote.NET.Services.Performance.Interfaces;
+using GithubNote.NET.Services.Performance.Implementation;
+using GithubNote.NET.Services.UI;
+using GithubNote.NET.Services.UI.Theme;
+using GithubNote.NET.UI.Controls;
+using GithubNote.NET.UI.ViewModels;
 using Microsoft.Extensions.Logging;
+using Serilog;
 using System;
 
 namespace GithubNote.NET.Services
@@ -21,7 +30,7 @@ namespace GithubNote.NET.Services
             services.AddSingleton(appConfig);
 
             // 配置数据库
-            services.AddDbContext<AppDbContext>((serviceProvider, options) =>
+            services.AddDbContext<GithubNoteDbContext>((serviceProvider, options) =>
             {
                 var dbConfig = appConfig.Database;
                 switch (dbConfig.Provider.ToLower())
@@ -30,14 +39,16 @@ namespace GithubNote.NET.Services
                         options.UseSqlite(dbConfig.ConnectionString);
                         break;
                     case "sqlserver":
-                        options.UseSqlServer(dbConfig.ConnectionString);
+                        options.UseSqlServer(dbConfig.ConnectionString, sqlServerOptions =>
+                        {
+                            sqlServerOptions.CommandTimeout(dbConfig.CommandTimeout);
+                        });
                         break;
                     default:
                         throw new ArgumentException($"Unsupported database provider: {dbConfig.Provider}");
                 }
 
                 options.EnableSensitiveDataLogging(dbConfig.EnableSensitiveDataLogging);
-                options.CommandTimeout(dbConfig.CommandTimeout);
 
                 // 配置日志
                 var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
@@ -51,7 +62,9 @@ namespace GithubNote.NET.Services
 
             // 添加性能监控
             services.AddSingleton<PerformanceMonitor>();
-            services.AddSingleton<IPerformanceMonitor>(sp => sp.GetRequiredService<PerformanceMonitor>());
+            services.AddSingleton<GithubNote.NET.Services.Performance.Interfaces.IPerformanceMonitor>(sp => sp.GetRequiredService<PerformanceMonitor>());
+            services.AddSingleton<IPerformanceOptimizer, PerformanceOptimizer>();
+            services.AddSingleton<IThemeService, ThemeService>();
 
             // 添加缓存服务
             services.AddMemoryCache();
@@ -69,7 +82,7 @@ namespace GithubNote.NET.Services
             services.AddSingleton<INavigationService, NavigationService>();
 
             // 添加UI服务
-            services.AddSingleton<IActivityIndicator, LoadingIndicator>();
+            services.AddSingleton<GithubNote.NET.Services.UI.IActivityIndicator, GithubNote.NET.Services.UI.LoadingIndicator>();
             services.AddSingleton<IUIService, UIService>();
             services.AddSingleton<IStateService, StateService>();
             services.AddSingleton(Preferences.Default);
@@ -80,6 +93,13 @@ namespace GithubNote.NET.Services
 
             // 配置HttpClient
             services.AddHttpClient<NoteSyncService>();
+
+            // Configure Serilog
+            Log.Logger = new LoggerConfiguration()
+                .MinimumLevel.Debug()
+                .WriteTo.Console()
+                .WriteTo.File("logs/log.txt", rollingInterval: RollingInterval.Day)
+                .CreateLogger();
 
             // 添加日志服务
             services.AddLogging(builder =>
@@ -92,13 +112,7 @@ namespace GithubNote.NET.Services
                     builder.AddConsole();
                 }
 
-                if (loggingConfig.EnableFileLogging)
-                {
-                    builder.AddFile(loggingConfig.LogFilePath, options =>
-                    {
-                        options.RetainedFileCountLimit = loggingConfig.RetainedFileCountLimit;
-                    });
-                }
+                builder.AddSerilog();
             });
 
             return services;

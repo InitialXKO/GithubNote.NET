@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using GithubNote.NET.Models;
 using GithubNote.NET.Services.Performance;
+using GithubNote.NET.Services.Performance.Interfaces;
 using Microsoft.Extensions.Logging;
 
 namespace GithubNote.NET.Cache
@@ -24,7 +25,12 @@ namespace GithubNote.NET.Cache
         {
             public T Value { get; set; }
             public DateTime LastAccessed { get; set; }
-            public int AccessCount { get; set; }
+            internal int _accessCount;
+            public int AccessCount
+            {
+                get => _accessCount;
+                set => _accessCount = value;
+            }
             public long Size { get; set; }
         }
 
@@ -46,16 +52,17 @@ namespace GithubNote.NET.Cache
                 TimeSpan.FromMinutes(CleanupIntervalMinutes));
         }
 
-        public async Task<Note> GetNoteAsync(string id)
+        public async Task<Note?> GetNoteAsync(string id)
         {
             var startTime = DateTime.UtcNow;
             try
             {
-                if (_noteCache.TryGetValue(id, out var entry))
+                var cacheEntry = default(CacheEntry<Note>);
+                if (_noteCache.TryGetValue(id, out cacheEntry))
                 {
-                    entry.LastAccessed = DateTime.UtcNow;
-                    Interlocked.Increment(ref entry.AccessCount);
-                    return entry.Value;
+                    cacheEntry.LastAccessed = DateTime.UtcNow;
+                    Interlocked.Increment(ref cacheEntry._accessCount);
+                    return cacheEntry.Value;
                 }
                 return null;
             }
@@ -68,17 +75,18 @@ namespace GithubNote.NET.Cache
             }
         }
 
-        public async Task<List<Note>> GetNotesAsync()
+        public async Task<List<Note>?> GetNotesAsync()
         {
             var startTime = DateTime.UtcNow;
             try
             {
                 var key = "all_notes";
-                if (_listCache.TryGetValue(key, out var entry))
+                var listCacheEntry = default(CacheEntry<List<Note>>);
+                if (_listCache.TryGetValue(key, out listCacheEntry))
                 {
-                    entry.LastAccessed = DateTime.UtcNow;
-                    Interlocked.Increment(ref entry.AccessCount);
-                    return entry.Value;
+                    listCacheEntry.LastAccessed = DateTime.UtcNow;
+                    Interlocked.Increment(ref listCacheEntry._accessCount);
+                    return listCacheEntry.Value;
                 }
                 return null;
             }
@@ -158,7 +166,7 @@ namespace GithubNote.NET.Cache
             _listCache.Clear();
         }
 
-        private async void CleanupCache(object state)
+        private async void CleanupCache(object? state)
         {
             if (await _cleanupLock.WaitAsync(0)) // Non-blocking
             {

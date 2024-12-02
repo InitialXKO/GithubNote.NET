@@ -2,6 +2,7 @@ using System;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Text.Json;
+using System.Net.Http.Json;
 using Microsoft.Extensions.Logging;
 using GithubNote.NET.Models;
 using GithubNote.NET.Cache;
@@ -120,7 +121,7 @@ namespace GithubNote.NET.Services
                 {
                     Title = gist.Description ?? "Imported Note",
                     Content = gist.Files["note.md"].Content,
-                    UserId = userId,
+                    UserId = userId.ToString(),
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 };
@@ -171,7 +172,7 @@ namespace GithubNote.NET.Services
             }
         }
 
-        public async Task<SyncStatus> GetSyncStatusAsync(int noteId)
+        public async Task<SyncStatus> GetSyncStatusAsync(string noteId)
         {
             try
             {
@@ -195,7 +196,7 @@ namespace GithubNote.NET.Services
             return token;
         }
 
-        private async Task UpdateSyncStatus(int noteId, string gistId)
+        private async Task UpdateSyncStatus(string noteId, string gistId)
         {
             var status = new SyncStatus
             {

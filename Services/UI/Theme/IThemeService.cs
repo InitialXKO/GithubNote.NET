@@ -1,14 +1,19 @@
+using System;
 using System.Threading.Tasks;
 
 namespace GithubNote.NET.Services.UI.Theme
 {
     public interface IThemeService
     {
-        Task SetThemeAsync(string themeName);
-        Task<string> GetCurrentThemeAsync();
-        Task<bool> IsDarkModeAsync();
-        Task ToggleDarkModeAsync();
-        Task ApplyThemeToElementAsync(object element, string themeName = null);
-        Task LoadCustomThemeAsync(string themePath);
+        event EventHandler<ThemeMode> ThemeChanged;
+        Task<ThemeMode> GetCurrentThemeAsync();
+        Task SetThemeAsync(ThemeMode mode);
+        Task<ThemeOptions> GetThemeOptionsAsync();
+        Task SetThemeOptionsAsync(ThemeOptions options);
+        string GetThemeClass();
+        Task<bool> ToggleDarkModeAsync();
+        Task ApplyThemeToElementAsync(object element, string propertyName);
+        bool IsDarkMode();
+        void LoadCustomTheme(string themePath);
     }
 }

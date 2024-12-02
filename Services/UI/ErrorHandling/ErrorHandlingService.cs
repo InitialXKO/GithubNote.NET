@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using GithubNote.NET.Services.Performance.Interfaces;
 
 namespace GithubNote.NET.Services.UI.ErrorHandling
 {
@@ -61,20 +62,21 @@ namespace GithubNote.NET.Services.UI.ErrorHandling
                     Context = context,
                     Severity = severity,
                     Timestamp = DateTime.UtcNow,
-                    CorrelationId = Guid.NewGuid().ToString()
+                    CorrelationId = Guid.NewGuid().ToString(),
+                    UserNotified = false
                 };
 
-                LogError(errorDetails, ex);
-                _activeErrors.AddOrUpdate(context, errorDetails, (_, _) => errorDetails);
+                _activeErrors[context] = errorDetails;
                 OnError?.Invoke(this, errorDetails);
 
-                await Task.CompletedTask;
-            }
-            finally
-            {
-                _performanceMonitor.TrackOperation(
-                    "ErrorHandlingService.HandleError",
+                _logger.LogError(ex, $"[{errorDetails.CorrelationId}] Error in {context}: {ex.Message}");
+                await _performanceMonitor.TrackOperationAsync(
+                    $"ErrorHandling.HandleError.{context}",
                     DateTime.UtcNow - startTime);
+            }
+            catch (Exception handlerEx)
+            {
+                _logger.LogError(handlerEx, "Error in error handler");
             }
         }
 
@@ -89,26 +91,43 @@ namespace GithubNote.NET.Services.UI.ErrorHandling
                     Context = context,
                     Severity = severity,
                     Timestamp = DateTime.UtcNow,
-                    CorrelationId = Guid.NewGuid().ToString()
+                    CorrelationId = Guid.NewGuid().ToString(),
+                    UserNotified = false
                 };
 
-                LogError(errorDetails);
-                _activeErrors.AddOrUpdate(context, errorDetails, (_, _) => errorDetails);
+                _activeErrors[context] = errorDetails;
                 OnError?.Invoke(this, errorDetails);
 
-                await Task.CompletedTask;
-            }
-            finally
-            {
-                _performanceMonitor.TrackOperation(
-                    "ErrorHandlingService.HandleError",
+                _logger.LogError($"[{errorDetails.CorrelationId}] Error in {context}: {message}");
+                await _performanceMonitor.TrackOperationAsync(
+                    $"ErrorHandling.HandleError.{context}",
                     DateTime.UtcNow - startTime);
+            }
+            catch (Exception handlerEx)
+            {
+                _logger.LogError(handlerEx, "Error in error handler");
             }
         }
 
         public async Task<ErrorDetails> GetLastErrorAsync(string context)
         {
-            return await Task.FromResult(_activeErrors.TryGetValue(context, out var error) ? error : null);
+            var startTime = DateTime.UtcNow;
+            try
+            {
+                if (_activeErrors.TryGetValue(context, out var error))
+                {
+                    await _performanceMonitor.TrackOperationAsync(
+                        $"ErrorHandling.GetLastError.{context}",
+                        DateTime.UtcNow - startTime);
+                    return error;
+                }
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error getting last error for context {context}");
+                throw;
+            }
         }
 
         public async Task ClearErrorsAsync(string context)
@@ -122,7 +141,7 @@ namespace GithubNote.NET.Services.UI.ErrorHandling
             return _activeErrors.ContainsKey(context);
         }
 
-        private void LogError(ErrorDetails errorDetails, Exception ex = null)
+        private void LogError(ErrorDetails errorDetails, Exception? ex = null)
         {
             var logMessage = $"Error in {errorDetails.Context}: {errorDetails.Message} (Correlation ID: {errorDetails.CorrelationId})";
             

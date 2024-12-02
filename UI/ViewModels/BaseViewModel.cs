@@ -8,8 +8,8 @@ namespace GithubNote.NET.UI.ViewModels
     public abstract class BaseViewModel : ObservableObject
     {
         private bool _isBusy;
-        private string _title;
-        private string _errorMessage;
+        private string _title = string.Empty;
+        private string _errorMessage = string.Empty;
 
         public bool IsBusy
         {
@@ -29,7 +29,7 @@ namespace GithubNote.NET.UI.ViewModels
             set => SetProperty(ref _errorMessage, value);
         }
 
-        protected bool SetProperty<T>(ref T field, T value, [CallerMemberName] string propertyName = null)
+        protected new bool SetProperty<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
         {
             if (Equals(field, value)) return false;
             field = value;

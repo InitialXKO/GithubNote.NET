@@ -14,7 +14,7 @@ namespace GithubNote.NET.UI.Pages
             BindingContext = _viewModel;
         }
 
-        public async Task LoadNoteAsync(int noteId)
+        public async Task LoadNoteAsync(string noteId)
         {
             await _viewModel.LoadNoteAsync(noteId);
         }

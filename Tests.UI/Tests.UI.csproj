@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk.Razor">
 
   <PropertyGroup>
     <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <UseMaui>true</UseMaui>
+    <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
     
     <!-- Windows App SDK Configuration -->
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
@@ -24,9 +25,10 @@
     <PackageReference Include="bunit" Version="1.25.3" />
     <PackageReference Include="bunit.web" Version="1.25.3" />
     <PackageReference Include="bunit.core" Version="1.25.3" />
-    <PackageReference Include="Microsoft.Maui.Controls" Version="8.0.3" />
-    <PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="8.0.3" />
+    <PackageReference Include="Microsoft.Maui.Controls" Version="8.0.83" />
+    <PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="8.0.83" />
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.4.231115000" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="8.0.83" />
     <PackageReference Include="coverlet.collector" Version="6.0.0">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>

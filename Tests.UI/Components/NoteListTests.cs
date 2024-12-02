@@ -1,5 +1,8 @@
 using Bunit;
 using GithubNote.NET.Models;
+using GithubNote.NET.Services.UI;
+using GithubNote.NET.Components;
+using Microsoft.AspNetCore.Components;
 using Moq;
 using Xunit;
 using System.Collections.Generic;

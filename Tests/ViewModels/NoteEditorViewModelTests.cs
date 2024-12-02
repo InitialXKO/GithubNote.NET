@@ -15,7 +15,9 @@ namespace GithubNote.NET.Tests.ViewModels
             _viewModel = new NoteEditorViewModel(
                 MockNoteService.Object,
                 MockNoteSync.Object,
-                MockNavigationService.Object);
+                MockNavigationService.Object,
+                MockStateService.Object,
+                MockUiService.Object);
         }
 
         [Fact]

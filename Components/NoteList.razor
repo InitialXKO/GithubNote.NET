@@ -1,0 +1,67 @@
+@using GithubNote.NET.Models
+@using GithubNote.NET.Services.UI
+@inject INoteUIService NoteUIService
+
+<div class="note-list">
+    @if (Notes == null || !Notes.Any())
+    {
+        <div class="empty-message">
+            No notes found
+        </div>
+    }
+    else
+    {
+        <div class="notes-container">
+            @foreach (var note in Notes)
+            {
+                <div class="note-card" @onclick="() => OnNoteSelected(note)">
+                    <div class="note-header">
+                        <h3 class="note-title">@note.Title</h3>
+                        <button class="delete-button" @onclick="@(() => DeleteNote(note))">
+                            <span class="oi oi-trash"></span>
+                        </button>
+                    </div>
+                    <div class="note-content">@note.Content</div>
+                    @if (note.Categories?.Any() == true)
+                    {
+                        <div class="note-categories">
+                            @foreach (var category in note.Categories)
+                            {
+                                <span class="category-tag">@category</span>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private List<Note> Notes { get; set; } = new List<Note>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadNotes();
+    }
+
+    private async Task LoadNotes()
+    {
+        Notes = await NoteUIService.GetNotesAsync();
+    }
+
+    private async Task OnNoteSelected(Note note)
+    {
+        await NoteUIService.OpenNoteAsync(note.Id);
+    }
+
+    private async Task DeleteNote(Note note)
+    {
+        var confirmed = await NoteUIService.ConfirmDeleteNoteAsync(note.Title);
+        if (confirmed)
+        {
+            await NoteUIService.DeleteNoteAsync(note.Id);
+            await LoadNotes();
+        }
+    }
+}

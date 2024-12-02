@@ -10,7 +10,7 @@ namespace GithubNote.NET.Services
         Task<Note> ImportFromGistAsync(string gistId, int userId);
         Task<bool> DeleteGistAsync(string gistId);
         Task<bool> SyncAllNotesAsync(int userId);
-        Task<SyncStatus> GetSyncStatusAsync(int noteId);
+        Task<SyncStatus> GetSyncStatusAsync(string noteId);
     }
 
     public class SyncStatus

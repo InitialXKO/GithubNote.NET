@@ -94,7 +94,7 @@ namespace GithubNote.NET.Services
             }
         }
 
-        public async Task<bool> DeleteNoteAsync(int noteId)
+        public async Task<bool> DeleteNoteAsync(string noteId)
         {
             try
             {
@@ -121,34 +121,12 @@ namespace GithubNote.NET.Services
             }
         }
 
-        public async Task<Note> GetNoteByIdAsync(int noteId)
+        public async Task<Note> GetNoteByIdAsync(string noteId)
         {
-            try
-            {
-                // 尝试从缓存获取
-                var cachedNote = await _cacheService.GetAsync<Note>($"note_{noteId}");
-                if (cachedNote != null)
-                {
-                    return cachedNote;
-                }
-
-                // 从数据库获取
-                var note = await _noteRepository.GetByIdAsync(noteId);
-                if (note != null)
-                {
-                    await UpdateNoteCache(note);
-                }
-
-                return note;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Error retrieving note {noteId}");
-                throw;
-            }
+            return await GetNoteAsync(noteId);
         }
 
-        public async Task<IEnumerable<Note>> GetNotesByUserAsync(int userId)
+        public async Task<List<Note>> GetNotesByUserAsync(string userId)
         {
             try
             {
@@ -166,7 +144,7 @@ namespace GithubNote.NET.Services
             }
         }
 
-        public async Task<IEnumerable<Note>> SearchNotesAsync(string query, int userId)
+        public async Task<List<Note>> SearchNotesAsync(string query, string userId)
         {
             try
             {
@@ -179,11 +157,12 @@ namespace GithubNote.NET.Services
             }
         }
 
-        public async Task<IEnumerable<Note>> GetNotesByCategoryAsync(string category, int userId)
+        public async Task<List<Note>> GetNotesByCategoryAsync(string category)
         {
             try
             {
-                return await _noteRepository.GetByCategoryAsync(category, userId);
+                return await _noteRepository.GetByCategoryAsync(category);
+                // Consider adding a new method in the repository if filtering by userId is needed.
             }
             catch (Exception ex)
             {
@@ -192,7 +171,20 @@ namespace GithubNote.NET.Services
             }
         }
 
-        public async Task<bool> AddCategoryAsync(int noteId, string category)
+        public async Task<List<Note>> GetNotesByCategoryAsync(string category, string userId)
+        {
+            try
+            {
+                return await _noteRepository.GetByCategoryAsync(category, userId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error retrieving notes by category {category} for user {userId}");
+                throw;
+            }
+        }
+
+        public async Task<bool> AddCategoryAsync(string noteId, string category)
         {
             try
             {
@@ -202,10 +194,7 @@ namespace GithubNote.NET.Services
                     return false;
                 }
 
-                if (note.Categories == null)
-                {
-                    note.Categories = new List<string>();
-                }
+                note.Categories ??= new List<string>();
 
                 if (!note.Categories.Contains(category))
                 {
@@ -222,7 +211,7 @@ namespace GithubNote.NET.Services
             }
         }
 
-        public async Task<bool> RemoveCategoryAsync(int noteId, string category)
+        public async Task<bool> RemoveCategoryAsync(string noteId, string category)
         {
             try
             {
@@ -247,7 +236,7 @@ namespace GithubNote.NET.Services
             }
         }
 
-        public async Task<IEnumerable<string>> GetUserCategoriesAsync(int userId)
+        public async Task<List<string>> GetUserCategoriesAsync(string userId)
         {
             try
             {
@@ -255,7 +244,8 @@ namespace GithubNote.NET.Services
                 return notes
                     .SelectMany(n => n.Categories ?? Enumerable.Empty<string>())
                     .Distinct()
-                    .OrderBy(c => c);
+                    .OrderBy(c => c)
+                    .ToList();
             }
             catch (Exception ex)
             {
@@ -264,11 +254,11 @@ namespace GithubNote.NET.Services
             }
         }
 
-        public async Task<Note> AddCommentAsync(int noteId, Comment comment)
+        public async Task<Note> AddCommentAsync(string noteId, Comment comment)
         {
             try
             {
-                var note = await GetNoteByIdAsync(noteId);
+                var note = await _noteRepository.GetByIdAsync(noteId);
                 if (note == null)
                 {
                     throw new InvalidOperationException("Note not found");
@@ -290,11 +280,11 @@ namespace GithubNote.NET.Services
             }
         }
 
-        public async Task<Note> AddAttachmentAsync(int noteId, ImageAttachment attachment)
+        public async Task<Note> AddAttachmentAsync(string noteId, Attachment attachment)
         {
             try
             {
-                var note = await GetNoteByIdAsync(noteId);
+                var note = await _noteRepository.GetByIdAsync(noteId);
                 if (note == null)
                 {
                     throw new InvalidOperationException("Note not found");
@@ -302,7 +292,7 @@ namespace GithubNote.NET.Services
 
                 if (note.Attachments == null)
                 {
-                    note.Attachments = new List<ImageAttachment>();
+                    note.Attachments = new List<Attachment>();
                 }
 
                 attachment.UploadedAt = DateTime.UtcNow;
@@ -316,11 +306,11 @@ namespace GithubNote.NET.Services
             }
         }
 
-        public async Task<bool> SyncWithGistAsync(int noteId)
+        public async Task<bool> SyncWithGistAsync(string noteId)
         {
             try
             {
-                var note = await GetNoteByIdAsync(noteId);
+                var note = await _noteRepository.GetByIdAsync(noteId);
                 if (note == null)
                 {
                     return false;
@@ -337,11 +327,11 @@ namespace GithubNote.NET.Services
             }
         }
 
-        public async Task<IEnumerable<Note>> GetRecentNotesAsync(int userId, int count = 10)
+        public async Task<List<Note>> GetRecentNotesAsync(string userId, int count = 10)
         {
             try
             {
-                return await _noteRepository.GetRecentAsync(userId, count);
+                return await _noteRepository.GetRecentNotesAsync(userId, count);
             }
             catch (Exception ex)
             {
@@ -350,7 +340,7 @@ namespace GithubNote.NET.Services
             }
         }
 
-        public async Task<NoteMetadata> GetNoteMetadataAsync(int noteId)
+        public async Task<NoteMetadata> GetNoteMetadataAsync(string noteId)
         {
             try
             {
@@ -388,7 +378,7 @@ namespace GithubNote.NET.Services
             }
         }
 
-        public async Task<bool> UpdateMetadataAsync(int noteId, NoteMetadata metadata)
+        public async Task<bool> UpdateMetadataAsync(string noteId, NoteMetadata metadata)
         {
             try
             {
@@ -409,6 +399,60 @@ namespace GithubNote.NET.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Error updating metadata for note {noteId}");
+                throw;
+            }
+        }
+
+        public async Task<List<Note>> GetNotesAsync()
+        {
+            try
+            {
+                var notes = await _noteRepository.GetAllAsync();
+                return notes.ToList();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting all notes");
+                throw;
+            }
+        }
+
+        public async Task<Note> GetNoteAsync(string id)
+        {
+            try
+            {
+                var note = await _noteRepository.GetByIdAsync(id);
+                if (note == null)
+                {
+                    _logger.LogWarning($"Note {id} not found");
+                    return null;
+                }
+                return note;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error getting note {id}");
+                throw;
+            }
+        }
+
+        public async Task<Note> SaveNoteAsync(Note note)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(note.Id))
+                {
+                    return await CreateNoteAsync(note);
+                }
+
+                note.UpdatedAt = DateTime.UtcNow;
+                var updatedNote = await _noteRepository.UpdateAsync(note);
+                await UpdateNoteCache(updatedNote);
+                return updatedNote;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error saving note {note.Id}");
                 throw;
             }
         }

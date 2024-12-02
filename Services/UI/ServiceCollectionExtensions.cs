@@ -2,6 +2,9 @@ using Microsoft.Extensions.DependencyInjection;
 using GithubNote.NET.Services.UI.ErrorHandling;
 using GithubNote.NET.Services.Performance;
 using GithubNote.NET.Cache;
+using GithubNote.NET.Services.Performance.Interfaces;
+using GithubNote.NET.Services.Performance.Implementation;
+using GithubNote.NET.Services.UI.Theme;
 
 namespace GithubNote.NET.Services.UI
 {

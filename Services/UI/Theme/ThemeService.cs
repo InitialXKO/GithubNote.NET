@@ -23,14 +23,14 @@ namespace GithubNote.NET.Services.UI.Theme
         public double Spacing { get; set; } = 8;
     }
 
-    public interface IThemeService
+    public class ThemeModeWrapper
     {
-        event EventHandler<ThemeMode> ThemeChanged;
-        Task<ThemeMode> GetCurrentThemeAsync();
-        Task SetThemeAsync(ThemeMode mode);
-        Task<ThemeOptions> GetThemeOptionsAsync();
-        Task SetThemeOptionsAsync(ThemeOptions options);
-        string GetThemeClass();
+        public ThemeMode Mode { get; set; }
+
+        public ThemeModeWrapper(ThemeMode mode)
+        {
+            Mode = mode;
+        }
     }
 
     public class ThemeService : IThemeService
@@ -52,70 +52,75 @@ namespace GithubNote.NET.Services.UI.Theme
         {
             _logger = logger;
             _stateManager = stateManager;
-            InitializeThemeOptions();
-        }
-
-        private void InitializeThemeOptions()
-        {
-            _lightThemeOptions = new ThemeOptions
-            {
-                PrimaryColor = "#2196f3",
-                SecondaryColor = "#ff4081",
-                BackgroundColor = "#ffffff",
-                TextColor = "#000000"
-            };
-
+            _lightThemeOptions = new ThemeOptions();
             _darkThemeOptions = new ThemeOptions
             {
-                PrimaryColor = "#90caf9",
-                SecondaryColor = "#f48fb1",
-                BackgroundColor = "#121212",
+                BackgroundColor = "#1e1e1e",
                 TextColor = "#ffffff"
             };
         }
 
         public async Task<ThemeMode> GetCurrentThemeAsync()
         {
-            var savedTheme = await _stateManager.GetStateAsync<ThemeMode>(ThemeModeKey);
-            _currentTheme = savedTheme ?? ThemeMode.System;
             return _currentTheme;
         }
 
         public async Task SetThemeAsync(ThemeMode mode)
         {
             _currentTheme = mode;
-            await _stateManager.SetStateAsync(ThemeModeKey, mode);
+            await _stateManager.SetStateAsync(ThemeModeKey, new ThemeModeWrapper(mode));
             ThemeChanged?.Invoke(this, mode);
-            _logger.LogInformation($"Theme changed to: {mode}");
         }
 
         public async Task<ThemeOptions> GetThemeOptionsAsync()
         {
-            var currentTheme = await GetCurrentThemeAsync();
-            var savedOptions = await _stateManager.GetStateAsync<ThemeOptions>(ThemeOptionsKey);
-
-            if (savedOptions != null)
-            {
-                return savedOptions;
-            }
-
-            return currentTheme == ThemeMode.Dark ? _darkThemeOptions : _lightThemeOptions;
+            return _currentTheme == ThemeMode.Dark ? _darkThemeOptions : _lightThemeOptions;
         }
 
         public async Task SetThemeOptionsAsync(ThemeOptions options)
         {
+            if (_currentTheme == ThemeMode.Dark)
+                _darkThemeOptions = options;
+            else
+                _lightThemeOptions = options;
+            
             await _stateManager.SetStateAsync(ThemeOptionsKey, options);
-            _logger.LogInformation("Theme options updated");
         }
 
         public string GetThemeClass()
         {
-            return _currentTheme switch
+            return _currentTheme.ToString().ToLower();
+        }
+
+        public bool IsDarkMode()
+        {
+            return _currentTheme == ThemeMode.Dark;
+        }
+
+        public async Task<bool> ToggleDarkModeAsync()
+        {
+            await SetThemeAsync(_currentTheme == ThemeMode.Dark ? ThemeMode.Light : ThemeMode.Dark);
+            return _currentTheme == ThemeMode.Dark;
+        }
+
+        public async Task ApplyThemeToElementAsync(object element, string propertyName)
+        {
+            var options = await GetThemeOptionsAsync();
+            // Implementation depends on UI framework
+        }
+
+        public void LoadCustomTheme(string themePath)
+        {
+            try
             {
-                ThemeMode.Light => "theme-light",
-                ThemeMode.Dark => "theme-dark",
-                _ => "theme-system"
-            };
+                // Load custom theme from file
+                _logger.LogInformation($"Loading custom theme from {themePath}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Failed to load custom theme from {themePath}");
+                throw;
+            }
         }
     }
 }

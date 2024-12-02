@@ -5,6 +5,8 @@ using System.Linq;
 using GithubNote.NET.Models;
 using Microsoft.Extensions.Logging;
 using GithubNote.NET.Services.UI.ErrorHandling;
+using GithubNote.NET.Services.Performance.Interfaces;
+using GithubNote.NET.Cache;
 
 namespace GithubNote.NET.Services.UI
 {
@@ -16,6 +18,8 @@ namespace GithubNote.NET.Services.UI
         Task<bool> DeleteNoteAsync(string id);
         Task<List<Note>> SearchNotesAsync(string searchTerm);
         Task<Note> CreateNewNoteAsync();
+        Task OpenNoteAsync(string noteId);
+        Task<bool> ConfirmDeleteNoteAsync(string noteTitle);
     }
 
     public class NoteUIService : INoteUIService
@@ -27,6 +31,7 @@ namespace GithubNote.NET.Services.UI
         private readonly IErrorHandlingService _errorHandling;
         private readonly IPerformanceOptimizer _optimizer;
         private readonly OptimizedNoteCache _noteCache;
+        private readonly IUIService _uiService;
 
         private const string CurrentNoteKey = "current_note";
         private const string NoteListKey = "note_list";
@@ -39,7 +44,8 @@ namespace GithubNote.NET.Services.UI
             IPerformanceMonitor performanceMonitor,
             IErrorHandlingService errorHandling,
             IPerformanceOptimizer optimizer,
-            OptimizedNoteCache noteCache)
+            OptimizedNoteCache noteCache,
+            IUIService uiService)
         {
             _noteService = noteService;
             _stateManager = stateManager;
@@ -48,6 +54,7 @@ namespace GithubNote.NET.Services.UI
             _errorHandling = errorHandling;
             _optimizer = optimizer;
             _noteCache = noteCache;
+            _uiService = uiService;
         }
 
         public async Task<List<Note>> GetNotesAsync()
@@ -77,7 +84,7 @@ namespace GithubNote.NET.Services.UI
             finally
             {
                 var duration = DateTime.UtcNow - startTime;
-                _performanceMonitor.TrackOperation("NoteUIService.GetNotes", duration);
+                await _performanceMonitor.TrackOperationAsync("NoteUIService.GetNotes", duration);
                 await _optimizer.RecordMetricAsync("NoteUIService", duration, GetCurrentMemoryUsage());
             }
         }
@@ -119,7 +126,7 @@ namespace GithubNote.NET.Services.UI
             finally
             {
                 var duration = DateTime.UtcNow - startTime;
-                _performanceMonitor.TrackOperation("NoteUIService.GetNote", duration);
+                await _performanceMonitor.TrackOperationAsync("NoteUIService.GetNote", duration);
                 await _optimizer.RecordMetricAsync("NoteUIService", duration, GetCurrentMemoryUsage());
             }
         }
@@ -168,7 +175,7 @@ namespace GithubNote.NET.Services.UI
             finally
             {
                 var duration = DateTime.UtcNow - startTime;
-                _performanceMonitor.TrackOperation("NoteUIService.SaveNote", duration);
+                await _performanceMonitor.TrackOperationAsync("NoteUIService.SaveNote", duration);
                 await _optimizer.RecordMetricAsync("NoteUIService", duration, GetCurrentMemoryUsage());
             }
         }
@@ -209,7 +216,7 @@ namespace GithubNote.NET.Services.UI
             finally
             {
                 var duration = DateTime.UtcNow - startTime;
-                _performanceMonitor.TrackOperation("NoteUIService.DeleteNote", duration);
+                await _performanceMonitor.TrackOperationAsync("NoteUIService.DeleteNote", duration);
                 await _optimizer.RecordMetricAsync("NoteUIService", duration, GetCurrentMemoryUsage());
             }
         }
@@ -253,7 +260,7 @@ namespace GithubNote.NET.Services.UI
             finally
             {
                 var duration = DateTime.UtcNow - startTime;
-                _performanceMonitor.TrackOperation("NoteUIService.SearchNotes", duration);
+                await _performanceMonitor.TrackOperationAsync("NoteUIService.SearchNotes", duration);
                 await _optimizer.RecordMetricAsync("NoteUIService", duration, GetCurrentMemoryUsage());
             }
         }
@@ -265,12 +272,63 @@ namespace GithubNote.NET.Services.UI
                 Id = Guid.NewGuid().ToString(),
                 Title = "New Note",
                 Content = "",
-                Created = DateTime.UtcNow,
-                LastModified = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
             };
 
             await _stateManager.SetStateAsync(CurrentNoteKey, note);
             return note;
+        }
+
+        public async Task OpenNoteAsync(string noteId)
+        {
+            var startTime = DateTime.UtcNow;
+            try
+            {
+                var note = await GetNoteAsync(noteId);
+                if (note != null)
+                {
+                    await _stateManager.SetStateAsync(CurrentNoteKey, note);
+                    _logger.LogInformation($"Opened note with ID: {noteId}");
+                }
+                else
+                {
+                    _logger.LogWarning($"Note with ID: {noteId} not found");
+                }
+            }
+            catch (Exception ex)
+            {
+                await _errorHandling.HandleErrorAsync(ex, "NoteEditor", ErrorSeverity.Error);
+            }
+            finally
+            {
+                var duration = DateTime.UtcNow - startTime;
+                await _performanceMonitor.TrackOperationAsync("NoteUIService.OpenNote", duration);
+                await _optimizer.RecordMetricAsync("NoteUIService", duration, GetCurrentMemoryUsage());
+            }
+        }
+
+        public async Task<bool> ConfirmDeleteNoteAsync(string noteTitle)
+        {
+            var startTime = DateTime.UtcNow;
+            try
+            {
+                var confirmed = await _uiService.ShowConfirmationAsync(
+                    "Delete Note",
+                    $"Are you sure you want to delete '{noteTitle}'?");
+                return confirmed;
+            }
+            catch (Exception ex)
+            {
+                await _errorHandling.HandleErrorAsync(ex, "NoteList", ErrorSeverity.Error);
+                return false;
+            }
+            finally
+            {
+                var duration = DateTime.UtcNow - startTime;
+                await _performanceMonitor.TrackOperationAsync("NoteUIService.ConfirmDeleteNote", duration);
+                await _optimizer.RecordMetricAsync("NoteUIService", duration, GetCurrentMemoryUsage());
+            }
         }
 
         private long GetCurrentMemoryUsage()

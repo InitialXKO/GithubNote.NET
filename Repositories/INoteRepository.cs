@@ -7,15 +7,22 @@ namespace GithubNote.NET.Repositories
 {
     public interface INoteRepository : IRepository<Note>
     {
-        Task<IEnumerable<Note>> GetNotesByTagAsync(string tag);
-        Task<IEnumerable<Note>> SearchNotesAsync(string searchTerm);
-        Task<IEnumerable<Note>> GetModifiedNotesAsync();
-        Task<IEnumerable<Note>> GetNotesByDateRangeAsync(DateTime start, DateTime end);
+        Task<List<Note>> GetByUserIdAsync(string userId);
+        Task<List<Note>> GetByCategoryAsync(string category);
+        Task<List<Note>> GetByCategoryAsync(string category, string userId);
+        Task<List<Note>> SearchAsync(string searchTerm, string userId);
+        Task<List<Note>> GetNotesByTagAsync(string tag);
+        Task<List<Note>> SearchNotesAsync(string searchTerm);
+        Task<List<Note>> GetModifiedNotesAsync();
+        Task<List<Note>> GetNotesByDateRangeAsync(DateTime start, DateTime end);
         Task<Note> GetNoteWithDetailsAsync(string id);
         Task<bool> AddCommentAsync(string noteId, Comment comment);
-        Task<bool> AddImageAsync(string noteId, ImageAttachment image);
+        Task<bool> AddAttachmentAsync(string noteId, Attachment attachment);
         Task<bool> UpdateMetadataAsync(string noteId, NoteMetadata metadata);
-        Task<IEnumerable<string>> GetAllTagsAsync();
+        Task<List<string>> GetAllTagsAsync();
+        Task<List<string>> GetAllCategoriesAsync();
         Task<int> GetNoteCountByTagAsync(string tag);
+        Task<int> GetNoteCountByCategoryAsync(string category);
+        Task<List<Note>> GetRecentNotesAsync(string userId, int count);
     }
 }

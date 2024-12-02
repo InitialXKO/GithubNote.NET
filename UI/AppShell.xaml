@@ -7,7 +7,7 @@
 
     <ShellContent
         Title="Notes"
-        ContentTemplate="{DataTemplate local:NoteListPage}"
+        ContentTemplate="{DataTemplate local:NotesPage}"
         Route="notes" />
 
     <ShellContent

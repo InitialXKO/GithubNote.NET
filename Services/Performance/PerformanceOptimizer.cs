@@ -1,209 +1,134 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.Concurrent;
-using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Caching.Memory;
+using GithubNote.NET.Services.Performance.Models;
+using GithubNote.NET.Services.Performance.Interfaces;
 
-namespace GithubNote.NET.Services.Performance
+namespace GithubNote.NET.Services.Performance.Implementation
 {
-    public class PerformanceMetrics
-    {
-        public TimeSpan AverageResponseTime { get; set; }
-        public long MemoryUsage { get; set; }
-        public int ActiveConnections { get; set; }
-        public int CacheHitRate { get; set; }
-        public DateTime LastUpdated { get; set; }
-    }
-
-    public class PerformanceThresholds
-    {
-        public TimeSpan MaxResponseTime { get; set; } = TimeSpan.FromSeconds(2);
-        public long MaxMemoryUsage { get; set; } = 1024 * 1024 * 512; // 512MB
-        public int MaxActiveConnections { get; set; } = 100;
-        public int MinCacheHitRate { get; set; } = 70; // 70%
-    }
-
-    public interface IPerformanceOptimizer
-    {
-        Task<bool> ShouldOptimizeAsync(string context);
-        Task RecordMetricAsync(string context, TimeSpan responseTime, long memoryUsage);
-        Task<PerformanceMetrics> GetMetricsAsync(string context);
-        void SetThresholds(PerformanceThresholds thresholds);
-    }
-
     public class PerformanceOptimizer : IPerformanceOptimizer
     {
-        private readonly ILogger<PerformanceOptimizer> _logger;
         private readonly ConcurrentDictionary<string, PerformanceMetrics> _metrics;
-        private readonly IPerformanceMonitor _monitor;
-        private PerformanceThresholds _thresholds;
-        private readonly SemaphoreSlim _optimizationLock;
+        private readonly PerformanceThresholds _thresholds;
+        private readonly ILogger<PerformanceOptimizer> _logger;
+        private readonly IMemoryCache _cache;
+        private readonly IPerformanceMonitor _performanceMonitor;
 
         public PerformanceOptimizer(
-            ILogger<PerformanceOptimizer> logger,
-            IPerformanceMonitor monitor,
-            IOptions<PerformanceThresholds> thresholds)
+            ILogger<PerformanceOptimizer> logger, 
+            IMemoryCache cache,
+            IPerformanceMonitor performanceMonitor)
         {
-            _logger = logger;
-            _monitor = monitor;
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _cache = cache ?? throw new ArgumentNullException(nameof(cache));
+            _performanceMonitor = performanceMonitor ?? throw new ArgumentNullException(nameof(performanceMonitor));
             _metrics = new ConcurrentDictionary<string, PerformanceMetrics>();
-            _thresholds = thresholds.Value;
-            _optimizationLock = new SemaphoreSlim(1, 1);
-        }
-
-        public async Task OptimizeCacheStrategyAsync()
-        {
-            await _optimizationLock.WaitAsync();
-            try
-            {
-                var metrics = await _monitor.GetMetricsAsync();
-                if (metrics.CacheHitCount / (metrics.CacheHitCount + metrics.CacheMissCount) < _thresholds.MinCacheHitRate / 100.0)
-                {
-                    _logger.LogInformation("Cache hit rate is below threshold, optimizing cache strategy");
-                    // Implement cache optimization logic
-                }
-            }
-            finally
-            {
-                _optimizationLock.Release();
-            }
-        }
-
-        public async Task<bool> ShouldPreloadDataAsync(string context)
-        {
-            var metrics = await GetMetricsAsync(context);
-            return metrics.CacheHitRate > _thresholds.MinCacheHitRate &&
-                   metrics.MemoryUsage < _thresholds.MaxMemoryUsage;
-        }
-
-        public async Task UpdateOptimizationSettingsAsync(OptimizationSettings settings)
-        {
-            await _optimizationLock.WaitAsync();
-            try
-            {
-                _thresholds.MaxResponseTime = settings.DefaultCacheExpiration;
-                _thresholds.MaxMemoryUsage = settings.MaxCacheSize;
-                _logger.LogInformation("Updated optimization settings");
-            }
-            finally
-            {
-                _optimizationLock.Release();
-            }
-        }
-
-        public async Task<OptimizationSettings> GetCurrentSettingsAsync()
-        {
-            return new OptimizationSettings
-            {
-                MaxCacheSize = (int)_thresholds.MaxMemoryUsage,
-                DefaultCacheExpiration = _thresholds.MaxResponseTime,
-                EnablePreloading = true,
-                PreloadBatchSize = 100,
-                ContextPreloadSettings = new Dictionary<string, bool>()
-            };
+            _thresholds = new PerformanceThresholds();
         }
 
         public async Task<bool> ShouldOptimizeAsync(string context)
         {
-            if (!_metrics.TryGetValue(context, out var metrics))
+            if (string.IsNullOrEmpty(context))
+                throw new ArgumentNullException(nameof(context));
+
+            var metrics = await GetMetricsAsync(context);
+            var performanceReport = await _performanceMonitor.GeneratePerformanceReport();
+            var activeConnections = await _performanceMonitor.GetActiveConnectionsAsync();
+
+            var shouldOptimize = false;
+            var reasons = new List<string>();
+
+            if (metrics.AverageResponseTime > _thresholds.MaxResponseTime)
             {
-                return false;
+                reasons.Add($"Response time ({metrics.AverageResponseTime.TotalMilliseconds:F2}ms) exceeds threshold ({_thresholds.MaxResponseTime.TotalMilliseconds}ms)");
+                shouldOptimize = true;
             }
 
-            // Check if enough time has passed since last optimization
-            if (DateTime.UtcNow - metrics.LastUpdated < TimeSpan.FromMinutes(5))
+            if (metrics.MemoryUsage > _thresholds.MaxMemoryUsage)
             {
-                return false;
+                reasons.Add($"Memory usage ({metrics.MemoryUsage / 1024 / 1024}MB) exceeds threshold ({_thresholds.MaxMemoryUsage / 1024 / 1024}MB)");
+                shouldOptimize = true;
             }
 
-            await _optimizationLock.WaitAsync();
-            try
+            if (activeConnections > _thresholds.MaxActiveConnections)
             {
-                bool shouldOptimize = false;
-
-                // Check response time threshold
-                if (metrics.AverageResponseTime > _thresholds.MaxResponseTime)
-                {
-                    _logger.LogWarning($"Response time threshold exceeded in {context}: {metrics.AverageResponseTime.TotalMilliseconds}ms");
-                    shouldOptimize = true;
-                }
-
-                // Check memory usage threshold
-                if (metrics.MemoryUsage > _thresholds.MaxMemoryUsage)
-                {
-                    _logger.LogWarning($"Memory usage threshold exceeded in {context}: {metrics.MemoryUsage / (1024 * 1024)}MB");
-                    shouldOptimize = true;
-                }
-
-                // Check cache hit rate threshold
-                if (metrics.CacheHitRate < _thresholds.MinCacheHitRate)
-                {
-                    _logger.LogWarning($"Cache hit rate below threshold in {context}: {metrics.CacheHitRate}%");
-                    shouldOptimize = true;
-                }
-
-                // Check active connections threshold
-                if (metrics.ActiveConnections > _thresholds.MaxActiveConnections)
-                {
-                    _logger.LogWarning($"Active connections threshold exceeded in {context}: {metrics.ActiveConnections}");
-                    shouldOptimize = true;
-                }
-
-                return shouldOptimize;
+                reasons.Add($"Active connections ({activeConnections}) exceeds threshold ({_thresholds.MaxActiveConnections})");
+                shouldOptimize = true;
             }
-            finally
+
+            if (performanceReport.CacheHitRate < _thresholds.MinCacheHitRate)
             {
-                _optimizationLock.Release();
+                reasons.Add($"Cache hit rate ({performanceReport.CacheHitRate:F2}%) below threshold ({_thresholds.MinCacheHitRate}%)");
+                shouldOptimize = true;
             }
+
+            if (shouldOptimize)
+            {
+                _logger.LogWarning($"Optimization needed for {context}. Reasons:\n- {string.Join("\n- ", reasons)}");
+            }
+
+            return shouldOptimize;
         }
 
         public async Task RecordMetricAsync(string context, TimeSpan responseTime, long memoryUsage)
         {
-            var metrics = _metrics.GetOrAdd(context, _ => new PerformanceMetrics());
+            if (string.IsNullOrEmpty(context))
+                throw new ArgumentNullException(nameof(context));
 
-            await _optimizationLock.WaitAsync();
             try
             {
-                // Update response time using exponential moving average
-                var alpha = 0.3; // Smoothing factor
-                metrics.AverageResponseTime = TimeSpan.FromTicks(
-                    (long)(metrics.AverageResponseTime.Ticks * (1 - alpha) + responseTime.Ticks * alpha));
+                await _performanceMonitor.TrackOperationAsync(context, responseTime);
+                await _performanceMonitor.TrackMemoryUsageAsync(context, memoryUsage);
 
-                // Update memory usage
-                metrics.MemoryUsage = memoryUsage;
-
-                // Update cache hit rate from monitor
-                var cacheStats = await Task.Run(() => _monitor.GetCacheStatistics());
-                metrics.CacheHitRate = (int)(cacheStats.Hits * 100.0 / (cacheStats.Hits + cacheStats.Misses));
-
-                // Update active connections (simplified example)
-                metrics.ActiveConnections = await Task.Run(() => _monitor.GetActiveConnections());
-
+                var metrics = _metrics.GetOrAdd(context, _ => new PerformanceMetrics());
                 metrics.LastUpdated = DateTime.UtcNow;
 
-                // Log metrics for monitoring
-                _logger.LogInformation(
-                    $"Performance metrics for {context}: " +
-                    $"Response Time={metrics.AverageResponseTime.TotalMilliseconds}ms, " +
-                    $"Memory={metrics.MemoryUsage / (1024 * 1024)}MB, " +
-                    $"Cache Hit Rate={metrics.CacheHitRate}%, " +
-                    $"Connections={metrics.ActiveConnections}");
+                // Update metrics with exponential moving average
+                const double alpha = 0.2; // Smoothing factor
+                metrics.AverageResponseTime = new TimeSpan(
+                    (long)(alpha * responseTime.Ticks + (1 - alpha) * metrics.AverageResponseTime.Ticks));
+                metrics.MemoryUsage = (long)(alpha * memoryUsage + (1 - alpha) * metrics.MemoryUsage);
+
+                _logger.LogDebug($"Updated performance metrics for context: {context}");
             }
-            finally
+            catch (Exception ex)
             {
-                _optimizationLock.Release();
+                _logger.LogError(ex, $"Error recording metrics for context: {context}");
+                throw;
             }
         }
 
         public async Task<PerformanceMetrics> GetMetricsAsync(string context)
         {
-            return await Task.FromResult(_metrics.GetOrAdd(context, _ => new PerformanceMetrics()));
+            if (string.IsNullOrEmpty(context))
+                throw new ArgumentNullException(nameof(context));
+
+            var metrics = _metrics.GetOrAdd(context, _ => new PerformanceMetrics
+            {
+                AverageResponseTime = TimeSpan.Zero,
+                MemoryUsage = 0,
+                LastUpdated = DateTime.UtcNow
+            });
+
+            var monitorMetrics = await _performanceMonitor.GetMetricsAsync();
+            metrics.AverageOperationDurations = monitorMetrics.AverageOperationDurations;
+            metrics.MemoryUsageByContext = monitorMetrics.MemoryUsageByContext;
+
+            return metrics;
         }
 
         public void SetThresholds(PerformanceThresholds thresholds)
         {
-            _thresholds = thresholds ?? throw new ArgumentNullException(nameof(thresholds));
+            if (thresholds == null)
+                throw new ArgumentNullException(nameof(thresholds));
+
+            _thresholds.MaxResponseTime = thresholds.MaxResponseTime;
+            _thresholds.MaxMemoryUsage = thresholds.MaxMemoryUsage;
+            _thresholds.MaxActiveConnections = thresholds.MaxActiveConnections;
+            _thresholds.MinCacheHitRate = thresholds.MinCacheHitRate;
         }
     }
 }

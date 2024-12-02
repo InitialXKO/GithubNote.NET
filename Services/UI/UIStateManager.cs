@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using GithubNote.NET.Services.Performance.Interfaces;
 
 namespace GithubNote.NET.Services.UI
 {
@@ -41,7 +42,7 @@ namespace GithubNote.NET.Services.UI
             }
             finally
             {
-                _performanceMonitor.TrackOperation(
+                await _performanceMonitor.TrackOperationAsync(
                     $"UIStateManager.GetState<{typeof(T).Name}>",
                     DateTime.UtcNow - startTime);
             }
@@ -57,7 +58,7 @@ namespace GithubNote.NET.Services.UI
             }
             finally
             {
-                _performanceMonitor.TrackOperation(
+                await _performanceMonitor.TrackOperationAsync(
                     $"UIStateManager.SetState<{typeof(T).Name}>",
                     DateTime.UtcNow - startTime);
             }

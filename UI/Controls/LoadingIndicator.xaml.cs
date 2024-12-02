@@ -5,7 +5,7 @@ namespace GithubNote.NET.UI.Controls
     public partial class LoadingIndicator : ContentView, IActivityIndicator
     {
         private bool _isVisible;
-        private string _message;
+        private string _message = string.Empty;
 
         public LoadingIndicator()
         {
@@ -13,7 +13,7 @@ namespace GithubNote.NET.UI.Controls
             BindingContext = this;
         }
 
-        public bool IsVisible
+        public new bool IsVisible
         {
             get => _isVisible;
             private set
@@ -39,7 +39,7 @@ namespace GithubNote.NET.UI.Controls
             }
         }
 
-        public void Show(string message = null)
+        public void Show(string? message = "")
         {
             Message = message ?? "Loading...";
             IsVisible = true;
@@ -48,7 +48,7 @@ namespace GithubNote.NET.UI.Controls
         public void Hide()
         {
             IsVisible = false;
-            Message = null;
+            Message = string.Empty;
         }
     }
 }

@@ -7,7 +7,7 @@ namespace GithubNote.NET.UI
         public const string Settings = "//settings";
         public const string About = "//about";
         
-        public static string GetNoteEditorRoute(string noteId = null)
+        public static string GetNoteEditorRoute(string? noteId = null)
         {
             return noteId == null ? NoteEditor : $"{NoteEditor}?noteId={noteId}";
         }

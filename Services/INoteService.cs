@@ -7,21 +7,24 @@ namespace GithubNote.NET.Services
 {
     public interface INoteService
     {
+        Task<List<Note>> GetNotesAsync();
+        Task<Note> GetNoteAsync(string noteId);
+        Task<Note> SaveNoteAsync(Note note);
         Task<Note> CreateNoteAsync(Note note);
         Task<Note> UpdateNoteAsync(Note note);
-        Task<bool> DeleteNoteAsync(int noteId);
-        Task<Note> GetNoteByIdAsync(int noteId);
-        Task<IEnumerable<Note>> GetNotesByUserAsync(int userId);
-        Task<IEnumerable<Note>> SearchNotesAsync(string query, int userId);
-        Task<IEnumerable<Note>> GetNotesByCategoryAsync(string category, int userId);
-        Task<bool> AddCategoryAsync(int noteId, string category);
-        Task<bool> RemoveCategoryAsync(int noteId, string category);
-        Task<IEnumerable<string>> GetUserCategoriesAsync(int userId);
-        Task<Note> AddCommentAsync(int noteId, Comment comment);
-        Task<Note> AddAttachmentAsync(int noteId, ImageAttachment attachment);
-        Task<bool> SyncWithGistAsync(int noteId);
-        Task<IEnumerable<Note>> GetRecentNotesAsync(int userId, int count = 10);
-        Task<NoteMetadata> GetNoteMetadataAsync(int noteId);
-        Task<bool> UpdateMetadataAsync(int noteId, NoteMetadata metadata);
+        Task<bool> DeleteNoteAsync(string noteId);
+        Task<Note> GetNoteByIdAsync(string noteId);
+        Task<List<Note>> GetNotesByUserAsync(string userId);
+        Task<List<Note>> SearchNotesAsync(string query, string userId);
+        Task<List<Note>> GetNotesByCategoryAsync(string category, string userId);
+        Task<bool> AddCategoryAsync(string noteId, string category);
+        Task<bool> RemoveCategoryAsync(string noteId, string category);
+        Task<List<string>> GetUserCategoriesAsync(string userId);
+        Task<Note> AddCommentAsync(string noteId, Comment comment);
+        Task<Note> AddAttachmentAsync(string noteId, Attachment attachment);
+        Task<bool> SyncWithGistAsync(string noteId);
+        Task<List<Note>> GetRecentNotesAsync(string userId, int count = 10);
+        Task<NoteMetadata> GetNoteMetadataAsync(string noteId);
+        Task<bool> UpdateMetadataAsync(string noteId, NoteMetadata metadata);
     }
 }

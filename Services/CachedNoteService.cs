@@ -12,6 +12,8 @@ namespace GithubNote.NET.Services
         private readonly ICacheService _cacheService;
         private const string NoteCachePrefix = "note_";
         private const string NoteListCacheKey = "notes_list";
+        private const string UserNotesPrefix = "user_notes_";
+        private const string CategoryNotesPrefix = "category_notes_";
         private readonly TimeSpan _noteExpiration = TimeSpan.FromMinutes(30);
         private readonly TimeSpan _listExpiration = TimeSpan.FromMinutes(5);
 
@@ -21,6 +23,41 @@ namespace GithubNote.NET.Services
         {
             _innerService = innerService;
             _cacheService = cacheService;
+        }
+
+        public async Task<List<Note>> GetNotesAsync()
+        {
+            var cacheKey = NoteListCacheKey;
+            var notes = await _cacheService.GetAsync<List<Note>>(cacheKey);
+            if (notes == null)
+            {
+                notes = await _innerService.GetNotesAsync();
+                await _cacheService.SetAsync(cacheKey, notes, _listExpiration);
+            }
+            return notes;
+        }
+
+        public async Task<Note> GetNoteAsync(string noteId)
+        {
+            var cacheKey = $"{NoteCachePrefix}{noteId}";
+            var note = await _cacheService.GetAsync<Note>(cacheKey);
+            if (note == null)
+            {
+                note = await _innerService.GetNoteAsync(noteId);
+                if (note != null)
+                {
+                    await _cacheService.SetAsync(cacheKey, note, _noteExpiration);
+                }
+            }
+            return note;
+        }
+
+        public async Task<Note> SaveNoteAsync(Note note)
+        {
+            var savedNote = await _innerService.SaveNoteAsync(note);
+            await InvalidateNoteCache(note.Id);
+            await InvalidateListCache();
+            return savedNote;
         }
 
         public async Task<Note> CreateNoteAsync(Note note)
@@ -38,7 +75,7 @@ namespace GithubNote.NET.Services
             return updatedNote;
         }
 
-        public async Task<bool> DeleteNoteAsync(int noteId)
+        public async Task<bool> DeleteNoteAsync(string noteId)
         {
             var result = await _innerService.DeleteNoteAsync(noteId);
             if (result)
@@ -49,37 +86,42 @@ namespace GithubNote.NET.Services
             return result;
         }
 
-        public async Task<Note> GetNoteByIdAsync(int noteId)
+        public async Task<Note> GetNoteByIdAsync(string noteId)
         {
-            return await _cacheService.GetOrAddAsync(
-                $"{NoteCachePrefix}{noteId}",
-                () => _innerService.GetNoteByIdAsync(noteId),
-                _noteExpiration);
+            return await GetNoteAsync(noteId);
         }
 
-        public async Task<IEnumerable<Note>> GetNotesByUserAsync(int userId)
+        public async Task<List<Note>> GetNotesByUserAsync(string userId)
         {
-            return await _cacheService.GetOrAddAsync(
-                $"{NoteListCacheKey}_{userId}",
-                () => _innerService.GetNotesByUserAsync(userId),
-                _listExpiration);
+            var cacheKey = $"{UserNotesPrefix}{userId}";
+            var notes = await _cacheService.GetAsync<List<Note>>(cacheKey);
+            if (notes == null)
+            {
+                notes = await _innerService.GetNotesByUserAsync(userId);
+                await _cacheService.SetAsync(cacheKey, notes, _listExpiration);
+            }
+            return notes;
         }
 
-        public async Task<IEnumerable<Note>> SearchNotesAsync(string query, int userId)
+        public async Task<List<Note>> SearchNotesAsync(string query, string userId)
         {
-            // Don't cache search results
+            // Search results are not cached as they may change frequently
             return await _innerService.SearchNotesAsync(query, userId);
         }
 
-        public async Task<IEnumerable<Note>> GetNotesByCategoryAsync(string category, int userId)
+        public async Task<List<Note>> GetNotesByCategoryAsync(string category, string userId)
         {
-            return await _cacheService.GetOrAddAsync(
-                $"{NoteListCacheKey}_{userId}_{category}",
-                () => _innerService.GetNotesByCategoryAsync(category, userId),
-                _listExpiration);
+            var cacheKey = $"{CategoryNotesPrefix}{category}_{userId}";
+            var notes = await _cacheService.GetAsync<List<Note>>(cacheKey);
+            if (notes == null)
+            {
+                notes = await _innerService.GetNotesByCategoryAsync(category, userId);
+                await _cacheService.SetAsync(cacheKey, notes, _listExpiration);
+            }
+            return notes;
         }
 
-        public async Task<bool> AddCategoryAsync(int noteId, string category)
+        public async Task<bool> AddCategoryAsync(string noteId, string category)
         {
             var result = await _innerService.AddCategoryAsync(noteId, category);
             if (result)
@@ -90,7 +132,7 @@ namespace GithubNote.NET.Services
             return result;
         }
 
-        public async Task<bool> RemoveCategoryAsync(int noteId, string category)
+        public async Task<bool> RemoveCategoryAsync(string noteId, string category)
         {
             var result = await _innerService.RemoveCategoryAsync(noteId, category);
             if (result)
@@ -101,57 +143,35 @@ namespace GithubNote.NET.Services
             return result;
         }
 
-        public async Task<IEnumerable<string>> GetUserCategoriesAsync(int userId)
+        public async Task<List<string>> GetUserCategoriesAsync(string userId)
         {
-            return await _cacheService.GetOrAddAsync(
-                $"categories_{userId}",
-                () => _innerService.GetUserCategoriesAsync(userId),
-                _listExpiration);
+            var cacheKey = $"user_categories_{userId}";
+            var categories = await _cacheService.GetAsync<List<string>>(cacheKey);
+            if (categories == null)
+            {
+                categories = await _innerService.GetUserCategoriesAsync(userId);
+                await _cacheService.SetAsync(cacheKey, categories, _listExpiration);
+            }
+            return categories;
         }
 
-        public async Task<Note> AddCommentAsync(int noteId, Comment comment)
+        public async Task<Note> AddCommentAsync(string noteId, Comment comment)
         {
             var updatedNote = await _innerService.AddCommentAsync(noteId, comment);
             await InvalidateNoteCache(noteId);
             return updatedNote;
         }
 
-        public async Task<Note> AddAttachmentAsync(int noteId, ImageAttachment attachment)
+        public async Task<Note> AddAttachmentAsync(string noteId, Attachment attachment)
         {
             var updatedNote = await _innerService.AddAttachmentAsync(noteId, attachment);
             await InvalidateNoteCache(noteId);
             return updatedNote;
         }
 
-        public async Task<bool> SyncWithGistAsync(int userId)
+        public async Task<bool> SyncWithGistAsync(string noteId)
         {
-            var result = await _innerService.SyncWithGistAsync(userId);
-            if (result)
-            {
-                await InvalidateListCache();
-            }
-            return result;
-        }
-
-        public async Task<IEnumerable<Note>> GetRecentNotesAsync(int userId, int count)
-        {
-            return await _cacheService.GetOrAddAsync(
-                $"{NoteListCacheKey}_recent_{userId}_{count}",
-                () => _innerService.GetRecentNotesAsync(userId, count),
-                _listExpiration);
-        }
-
-        public async Task<NoteMetadata> GetNoteMetadataAsync(int noteId)
-        {
-            return await _cacheService.GetOrAddAsync(
-                $"{NoteCachePrefix}metadata_{noteId}",
-                () => _innerService.GetNoteMetadataAsync(noteId),
-                _noteExpiration);
-        }
-
-        public async Task<bool> UpdateMetadataAsync(int noteId, NoteMetadata metadata)
-        {
-            var result = await _innerService.UpdateMetadataAsync(noteId, metadata);
+            var result = await _innerService.SyncWithGistAsync(noteId);
             if (result)
             {
                 await InvalidateNoteCache(noteId);
@@ -159,9 +179,49 @@ namespace GithubNote.NET.Services
             return result;
         }
 
-        private async Task InvalidateNoteCache(int noteId)
+        public async Task<List<Note>> GetRecentNotesAsync(string userId, int count = 10)
         {
-            await _cacheService.RemoveAsync($"{NoteCachePrefix}{noteId}");
+            var cacheKey = $"recent_notes_{userId}_{count}";
+            var notes = await _cacheService.GetAsync<List<Note>>(cacheKey);
+            if (notes == null)
+            {
+                notes = await _innerService.GetRecentNotesAsync(userId, count);
+                await _cacheService.SetAsync(cacheKey, notes, _listExpiration);
+            }
+            return notes;
+        }
+
+        public async Task<NoteMetadata> GetNoteMetadataAsync(string noteId)
+        {
+            var cacheKey = $"metadata_{noteId}";
+            var metadata = await _cacheService.GetAsync<NoteMetadata>(cacheKey);
+            if (metadata == null)
+            {
+                metadata = await _innerService.GetNoteMetadataAsync(noteId);
+                if (metadata != null)
+                {
+                    await _cacheService.SetAsync(cacheKey, metadata, _noteExpiration);
+                }
+            }
+            return metadata;
+        }
+
+        public async Task<bool> UpdateMetadataAsync(string noteId, NoteMetadata metadata)
+        {
+            var result = await _innerService.UpdateMetadataAsync(noteId, metadata);
+            if (result)
+            {
+                await InvalidateNoteCache(noteId);
+                var metadataCacheKey = $"metadata_{noteId}";
+                await _cacheService.RemoveAsync(metadataCacheKey);
+            }
+            return result;
+        }
+
+        private async Task InvalidateNoteCache(string noteId)
+        {
+            var cacheKey = $"{NoteCachePrefix}{noteId}";
+            await _cacheService.RemoveAsync(cacheKey);
         }
 
         private async Task InvalidateListCache()

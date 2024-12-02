@@ -1,4 +1,5 @@
 using GithubNote.NET.Services;
+using GithubNote.NET.Authentication;
 using Moq;
 using Xunit;
 

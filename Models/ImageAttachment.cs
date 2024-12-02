@@ -2,7 +2,7 @@ using System;
 
 namespace GithubNote.NET.Models
 {
-    public class ImageAttachment
+    public class ImageAttachment : Attachment
     {
         public string Id { get; set; }
         public string Url { get; set; }

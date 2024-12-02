@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Net.Http;
+using Microsoft.AspNetCore.Builder;
 
 namespace GithubNote.NET.Authentication
 {

@@ -7,6 +7,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using GithubNote.NET.Models;
 using GithubNote.NET.Services;
 using GithubNote.NET.Services.UI;
+using GithubNote.NET.UI.ViewModels.States;
 
 namespace GithubNote.NET.UI.ViewModels
 {
@@ -92,27 +93,51 @@ namespace GithubNote.NET.UI.ViewModels
         public IAsyncRelayCommand<string> AddCommentCommand { get; }
         public IAsyncRelayCommand<ImageAttachment> AddAttachmentCommand { get; }
 
-        public async Task LoadNoteAsync(int noteId)
+        public async Task LoadNoteAsync(string noteId)
         {
             try
             {
-                SetBusy(true);
-                var note = await _noteService.GetNoteByIdAsync(noteId);
-                if (note != null)
+                IsBusy = true;
+                CurrentNote = await _noteService.GetNoteAsync(noteId);
+                Content = CurrentNote.Content;
+                Categories.Clear();
+                foreach (var category in CurrentNote.Categories)
                 {
-                    CurrentNote = note;
-                    var syncStatus = await _noteSync.GetSyncStatusAsync(noteId);
-                    IsSynced = syncStatus.IsSynced;
-                    await RestoreStateAsync(noteId.ToString());
+                    Categories.Add(category);
                 }
+                Comments.Clear();
+                foreach (var comment in CurrentNote.Comments)
+                {
+                    Comments.Add(comment);
+                }
+                Attachments.Clear();
+                foreach (var attachment in CurrentNote.Attachments)
+                {
+                    if (attachment is ImageAttachment imageAttachment)
+                    {
+                        Attachments.Add(imageAttachment);
+                    }
+                }
+                IsSynced = CurrentNote.IsSynced;
             }
             catch (Exception ex)
             {
-                SetError($"Error loading note: {ex.Message}");
+                await _uiService.ShowErrorMessageAsync("Failed to load note", new Exception(ex.Message));
             }
             finally
             {
-                SetBusy(false);
+                IsBusy = false;
+            }
+        }
+
+        public void ApplyQueryAttributes(IDictionary<string, object> query)
+        {
+            if (query.TryGetValue("noteId", out var noteId))
+            {
+                if (!string.IsNullOrEmpty(noteId?.ToString()))
+                {
+                    _ = LoadNoteAsync(noteId.ToString());
+                }
             }
         }
 
@@ -127,15 +152,17 @@ namespace GithubNote.NET.UI.ViewModels
                     Content = state.Content;
                     if (state.Categories?.Count > 0)
                     {
-                        Categories = new ObservableCollection<string>(state.Categories);
+                        Categories.Clear();
+                        foreach (var category in state.Categories)
+                        {
+                            Categories.Add(category);
+                        }
                     }
                     if (!string.IsNullOrEmpty(state.DraftContent))
                     {
-                        await _uiService.ShowConfirmationAsync(
+                        await _uiService.ShowConfirmationDialogAsync(
                             "Restore Draft",
-                            "Would you like to restore your unsaved changes?",
-                            accept: "Yes",
-                            cancel: "No");
+                            "Would you like to restore your unsaved changes?");
                         if (true) // User confirmed
                         {
                             Content = state.DraftContent;
@@ -145,7 +172,7 @@ namespace GithubNote.NET.UI.ViewModels
             }
             catch (Exception ex)
             {
-                await _uiService.ShowErrorAsync($"Failed to restore state: {ex.Message}");
+                await _uiService.ShowErrorMessageAsync($"Failed to restore state: {ex.Message}", new Exception(ex.Message));
             }
         }
 
@@ -166,7 +193,7 @@ namespace GithubNote.NET.UI.ViewModels
             }
             catch (Exception ex)
             {
-                await _uiService.ShowErrorAsync($"Failed to save state: {ex.Message}");
+                await _uiService.ShowErrorMessageAsync($"Failed to save state: {ex.Message}", new Exception(ex.Message));
             }
         }
 
@@ -174,7 +201,7 @@ namespace GithubNote.NET.UI.ViewModels
         {
             try
             {
-                await _uiService.ShowLoadingAsync("Saving note...");
+                await _uiService.ShowLoadingIndicatorAsync(true);
                 CurrentNote.Title = Title;
                 CurrentNote.Content = Content;
                 CurrentNote.Categories = Categories.ToList();
@@ -187,11 +214,11 @@ namespace GithubNote.NET.UI.ViewModels
             }
             catch (Exception ex)
             {
-                await _uiService.ShowErrorAsync($"Failed to save note: {ex.Message}");
+                await _uiService.ShowErrorMessageAsync($"Failed to save note: {ex.Message}", new Exception(ex.Message));
             }
             finally
             {
-                await _uiService.HideLoadingAsync();
+                await _uiService.ShowLoadingIndicatorAsync(false);
             }
         }
 
@@ -204,6 +231,7 @@ namespace GithubNote.NET.UI.ViewModels
         {
             try
             {
+                await _uiService.ShowLoadingIndicatorAsync(true);
                 SetBusy(true);
                 if (CurrentNote != null)
                 {
@@ -214,10 +242,11 @@ namespace GithubNote.NET.UI.ViewModels
             }
             catch (Exception ex)
             {
-                SetError($"Error syncing note: {ex.Message}");
+                await _uiService.ShowErrorMessageAsync($"Error syncing note: {ex.Message}", new Exception(ex.Message));
             }
             finally
             {
+                await _uiService.ShowLoadingIndicatorAsync(false);
                 SetBusy(false);
             }
         }
@@ -226,6 +255,7 @@ namespace GithubNote.NET.UI.ViewModels
         {
             try
             {
+                await _uiService.ShowLoadingIndicatorAsync(true);
                 SetBusy(true);
                 if (CurrentNote != null && !string.IsNullOrWhiteSpace(category))
                 {
@@ -238,10 +268,11 @@ namespace GithubNote.NET.UI.ViewModels
             }
             catch (Exception ex)
             {
-                SetError($"Error adding category: {ex.Message}");
+                await _uiService.ShowErrorMessageAsync($"Error adding category: {ex.Message}", new Exception(ex.Message));
             }
             finally
             {
+                await _uiService.ShowLoadingIndicatorAsync(false);
                 SetBusy(false);
             }
         }
@@ -250,6 +281,7 @@ namespace GithubNote.NET.UI.ViewModels
         {
             try
             {
+                await _uiService.ShowLoadingIndicatorAsync(true);
                 SetBusy(true);
                 if (CurrentNote != null && !string.IsNullOrWhiteSpace(category))
                 {
@@ -259,10 +291,11 @@ namespace GithubNote.NET.UI.ViewModels
             }
             catch (Exception ex)
             {
-                SetError($"Error removing category: {ex.Message}");
+                await _uiService.ShowErrorMessageAsync($"Error removing category: {ex.Message}", new Exception(ex.Message));
             }
             finally
             {
+                await _uiService.ShowLoadingIndicatorAsync(false);
                 SetBusy(false);
             }
         }
@@ -271,6 +304,7 @@ namespace GithubNote.NET.UI.ViewModels
         {
             try
             {
+                await _uiService.ShowLoadingIndicatorAsync(true);
                 SetBusy(true);
                 if (CurrentNote != null && !string.IsNullOrWhiteSpace(content))
                 {
@@ -287,10 +321,11 @@ namespace GithubNote.NET.UI.ViewModels
             }
             catch (Exception ex)
             {
-                SetError($"Error adding comment: {ex.Message}");
+                await _uiService.ShowErrorMessageAsync($"Error adding comment: {ex.Message}", new Exception(ex.Message));
             }
             finally
             {
+                await _uiService.ShowLoadingIndicatorAsync(false);
                 SetBusy(false);
             }
         }
@@ -299,6 +334,7 @@ namespace GithubNote.NET.UI.ViewModels
         {
             try
             {
+                await _uiService.ShowLoadingIndicatorAsync(true);
                 SetBusy(true);
                 if (CurrentNote != null && attachment != null)
                 {
@@ -309,10 +345,11 @@ namespace GithubNote.NET.UI.ViewModels
             }
             catch (Exception ex)
             {
-                SetError($"Error adding attachment: {ex.Message}");
+                await _uiService.ShowErrorMessageAsync($"Error adding attachment: {ex.Message}", new Exception(ex.Message));
             }
             finally
             {
+                await _uiService.ShowLoadingIndicatorAsync(false);
                 SetBusy(false);
             }
         }
@@ -345,17 +382,12 @@ namespace GithubNote.NET.UI.ViewModels
                 {
                     foreach (var attachment in CurrentNote.Attachments)
                     {
-                        Attachments.Add(attachment);
+                        if (attachment is ImageAttachment imageAttachment)
+                        {
+                            Attachments.Add(imageAttachment);
+                        }
                     }
                 }
-            }
-        }
-
-        public void ApplyQueryAttributes(IDictionary<string, object> query)
-        {
-            if (query.TryGetValue("noteId", out var noteId))
-            {
-                LoadNoteAsync(noteId.ToString());
             }
         }
     }

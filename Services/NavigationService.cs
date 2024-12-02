@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Maui.Controls;
 
@@ -13,7 +14,11 @@ namespace GithubNote.NET.Services
 
         public Task NavigateToAsync(string route, object parameter)
         {
-            return Shell.Current.GoToAsync(route, parameter);
+            var parameters = new Dictionary<string, object>
+            {
+                { "parameter", parameter }
+            };
+            return Shell.Current.GoToAsync(route, parameters);
         }
 
         public Task GoBackAsync()

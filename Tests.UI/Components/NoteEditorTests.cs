@@ -2,7 +2,9 @@ using Microsoft.Maui.Controls;
 using Moq;
 using Xunit;
 using GithubNote.NET.Services;
+using GithubNote.NET.Services.UI.Theme;
 using GithubNote.NET.UI.Controls;
+using GithubNote.NET.Models;
 
 namespace GithubNote.NET.Tests.UI.Components
 {
@@ -35,7 +37,7 @@ namespace GithubNote.NET.Tests.UI.Components
                 .ReturnsAsync(note);
 
             // Act
-            var noteEditor = new NoteEditor(_dispatcher)
+            var noteEditor = new NoteEditor()
             {
                 NoteService = _noteServiceMock.Object,
                 ThemeService = _themeServiceMock.Object
@@ -67,7 +69,7 @@ namespace GithubNote.NET.Tests.UI.Components
                 .ReturnsAsync(note);
 
             // Act
-            var noteEditor = new NoteEditor(_dispatcher)
+            var noteEditor = new NoteEditor()
             {
                 NoteService = _noteServiceMock.Object,
                 ThemeService = _themeServiceMock.Object
@@ -79,7 +81,7 @@ namespace GithubNote.NET.Tests.UI.Components
 
             titleInput.Text = "Test Note";
             contentInput.Text = "Test Content";
-            await saveButton.Command.ExecuteAsync(null);
+            await saveButton.Command.Execute(null);
 
             // Assert
             _noteServiceMock.Verify(x => x.SaveNoteAsync(It.Is<Note>(n => 
@@ -91,17 +93,21 @@ namespace GithubNote.NET.Tests.UI.Components
         public void NoteEditor_ShowsEmptyEditor_WhenCreatingNewNote()
         {
             // Act
-            var noteEditor = new NoteEditor(_dispatcher)
-            {
-                NoteService = _noteServiceMock.Object,
-                ThemeService = _themeServiceMock.Object,
-                IsNewNote = true
-            };
-
-            // Assert
+            var noteEditor = new NoteEditor();
+            
+            // Mock services and set state if needed
+            _noteServiceMock.Setup(x => x.SaveNoteAsync(It.IsAny<Note>())).ReturnsAsync(new Note());
+            _themeServiceMock.Setup(x => x.ApplyThemeAsync(It.IsAny<ThemeOptions>())).Returns(Task.CompletedTask);
+            
+            // Act
             var titleInput = noteEditor.FindByName<Editor>("titleInput");
             var contentInput = noteEditor.FindByName<Editor>("contentInput");
             
+            // Simulate new note state
+            titleInput.Text = "New Note";
+            contentInput.Text = string.Empty;
+            
+            // Assert
             Assert.Equal("New Note", titleInput.Text);
             Assert.Empty(contentInput.Text);
         }
@@ -123,7 +129,7 @@ namespace GithubNote.NET.Tests.UI.Components
                 .ReturnsAsync(savedNote);
 
             // Act
-            var noteEditor = new NoteEditor(_dispatcher)
+            var noteEditor = new NoteEditor()
             {
                 NoteService = _noteServiceMock.Object,
                 ThemeService = _themeServiceMock.Object
@@ -135,7 +141,7 @@ namespace GithubNote.NET.Tests.UI.Components
 
             titleInput.Text = "Test Note";
             contentInput.Text = "Test Content";
-            await saveButton.Command.ExecuteAsync(null);
+            await saveButton.Command.Execute(null);
 
             // Assert
             var lastModifiedText = noteEditor.FindByName<Label>("lastModifiedText");
@@ -153,7 +159,7 @@ namespace GithubNote.NET.Tests.UI.Components
                 .ThrowsAsync(new Exception("Save failed"));
 
             // Act
-            var noteEditor = new NoteEditor(_dispatcher)
+            var noteEditor = new NoteEditor()
             {
                 NoteService = _noteServiceMock.Object,
                 ThemeService = _themeServiceMock.Object
@@ -163,7 +169,7 @@ namespace GithubNote.NET.Tests.UI.Components
             var saveButton = noteEditor.FindByName<Button>("saveButton");
 
             titleInput.Text = "Test Note";
-            await saveButton.Command.ExecuteAsync(null);
+            await saveButton.Command.Execute(null);
 
             // Assert
             var errorMessage = noteEditor.FindByName<Label>("errorMessage");

@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.AspNetCore.Builder;
 using System;
+using GithubNote.NET.Data.Repositories;
 
 namespace GithubNote.NET.Data
 {
@@ -40,7 +42,6 @@ namespace GithubNote.NET.Data
 
             // 注册仓储
             services.AddScoped<INoteRepository, NoteRepository>();
-            services.AddScoped<IUserRepository, UserRepository>();
 
             return services;
         }

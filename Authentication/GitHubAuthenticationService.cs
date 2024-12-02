@@ -35,14 +35,9 @@ namespace GithubNote.NET.Authentication
             _logger = logger;
             _httpClient = httpClient;
 
-            _clientId = configuration["GitHub:ClientId"];
-            _clientSecret = configuration["GitHub:ClientSecret"];
-            _redirectUri = configuration["GitHub:RedirectUri"];
-
-            if (string.IsNullOrEmpty(_clientId) || string.IsNullOrEmpty(_clientSecret))
-            {
-                throw new InvalidOperationException("GitHub OAuth credentials not configured");
-            }
+            _clientId = configuration["GitHub:ClientId"] ?? throw new ArgumentNullException(nameof(configuration), "GitHub ClientId not configured");
+            _clientSecret = configuration["GitHub:ClientSecret"] ?? throw new ArgumentNullException(nameof(configuration), "GitHub ClientSecret not configured");
+            _redirectUri = configuration["GitHub:RedirectUri"] ?? throw new ArgumentNullException(nameof(configuration), "GitHub RedirectUri not configured");
 
             _httpClient.DefaultRequestHeaders.Add("User-Agent", "GithubNote.NET");
         }

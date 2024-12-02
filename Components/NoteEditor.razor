@@ -3,6 +3,8 @@
 @using GithubNote.NET.Services.UI.Theme
 @inject INoteUIService NoteService
 @inject IThemeService ThemeService
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
 @implements IDisposable
 
 <div class="note-editor @ThemeService.GetThemeClass()">
@@ -23,13 +25,13 @@
             </div>
             <div class="actions">
                 <button class="action-button save-button @(_isDirty ? "active" : "")"
-                        @onclick="SaveNote"
+                        @onclick='SaveNote'
                         disabled="@(!_isDirty)">
                     <i class="fas fa-save"></i>
                     Save
                 </button>
                 <button class="action-button delete-button"
-                        @onclick="DeleteNote">
+                        @onclick='DeleteNote'>
                     <i class="fas fa-trash"></i>
                     Delete
                 </button>
@@ -37,22 +39,22 @@
         </div>
 
         <div class="editor-toolbar">
-            <button class="toolbar-button" @onclick="() => FormatText('**', '**')">
+            <button class="toolbar-button" @onclick='() => FormatText("**", "**")'>
                 <i class="fas fa-bold"></i>
             </button>
-            <button class="toolbar-button" @onclick="() => FormatText('*', '*')">
+            <button class="toolbar-button" @onclick='() => FormatText("*", "*")'>
                 <i class="fas fa-italic"></i>
             </button>
-            <button class="toolbar-button" @onclick="() => FormatText('# ', '')">
+            <button class="toolbar-button" @onclick='() => FormatText("# ", "")'>
                 <i class="fas fa-heading"></i>
             </button>
-            <button class="toolbar-button" @onclick="() => FormatText('- ', '')">
+            <button class="toolbar-button" @onclick='() => FormatText("- ", "")'>
                 <i class="fas fa-list"></i>
             </button>
-            <button class="toolbar-button" @onclick="() => FormatText('```\n', '\n```')">
+            <button class="toolbar-button" @onclick='() => FormatText("\n", "\n")'>
                 <i class="fas fa-code"></i>
             </button>
-            <button class="toolbar-button" @onclick="() => FormatText('[', '](url)')">
+            <button class="toolbar-button" @onclick='() => FormatText("[", "](url)")'>
                 <i class="fas fa-link"></i>
             </button>
         </div>
@@ -97,15 +99,15 @@
 
 @code {
     [Parameter]
-    public string NoteId { get; set; }
+    public string? NoteId { get; set; } = string.Empty;
 
-    private Note _note;
+    private Note _note = new Note();
     private bool _isDirty;
     private bool _showPreview = true;
     private string _markdownHtml = "";
     private int _wordCount;
     private int _charCount;
-    private ThemeOptions _themeOptions;
+    private ThemeOptions _themeOptions = new ThemeOptions();
 
     protected override async Task OnInitializedAsync()
     {
@@ -124,23 +126,29 @@
 
     private async Task LoadNote()
     {
-        _note = await NoteService.GetNoteAsync(NoteId);
-        if (_note != null)
+        if (NoteId != null)
         {
-            UpdatePreview();
-            UpdateWordCount();
+            _note = await NoteService.GetNoteAsync(NoteId);
+            if (_note != null)
+            {
+                UpdatePreview();
+                UpdateWordCount();
+            }
         }
     }
 
     private void OnTitleChanged(ChangeEventArgs e)
     {
-        _note.Title = e.Value.ToString();
-        _isDirty = true;
+        if (_note != null)
+        {
+            _note.Title = e.Value?.ToString() ?? string.Empty;
+            _isDirty = true;
+        }
     }
 
     private async Task SaveNote()
     {
-        if (_isDirty)
+        if (_isDirty && _note != null)
         {
             _note = await NoteService.SaveNoteAsync(_note);
             _isDirty = false;
@@ -151,7 +159,7 @@
     {
         var confirmed = await JSRuntime.InvokeAsync<bool>(
             "confirm", 
-            "Are you sure you want to delete this note?");
+            new object[] { "Are you sure you want to delete this note?" });
 
         if (confirmed)
         {

@@ -1,5 +1,8 @@
+using System.Threading;
 using Microsoft.Maui.Controls;
 using System.Threading.Tasks;
+using GithubNote.NET.Services.UI;
+using CommunityToolkit.Maui.Alerts;
 
 namespace GithubNote.NET.Services
 {
@@ -7,9 +10,9 @@ namespace GithubNote.NET.Services
     {
         private IDispatcher _dispatcher => Application.Current.Dispatcher;
         private Page CurrentPage => Application.Current.MainPage;
-        private IActivityIndicator _loadingIndicator;
+        private readonly GithubNote.NET.Services.UI.IActivityIndicator _loadingIndicator;
 
-        public UIService(IActivityIndicator loadingIndicator)
+        public UIService(GithubNote.NET.Services.UI.IActivityIndicator loadingIndicator)
         {
             _loadingIndicator = loadingIndicator;
         }
@@ -32,18 +35,18 @@ namespace GithubNote.NET.Services
 
         public async Task ShowLoadingAsync(string message = "Loading...")
         {
-            await _dispatcher.DispatchAsync(() =>
+            await _dispatcher.DispatchAsync(async () =>
             {
-                _loadingIndicator.Show(message);
+                await _loadingIndicator.Show(message);
                 return Task.CompletedTask;
             });
         }
 
         public async Task HideLoadingAsync()
         {
-            await _dispatcher.DispatchAsync(() =>
+            await _dispatcher.DispatchAsync(async () =>
             {
-                _loadingIndicator.Hide();
+                await _loadingIndicator.Hide();
                 return Task.CompletedTask;
             });
         }
@@ -52,11 +55,8 @@ namespace GithubNote.NET.Services
         {
             await _dispatcher.DispatchAsync(async () =>
             {
-                var snackbar = Application.Current.MainPage.FindByName<ISnackbar>("MainSnackbar");
-                if (snackbar != null)
-                {
-                    await snackbar.ShowAsync(message, durationMs);
-                }
+                var snackbar = Snackbar.Make(message);
+                await snackbar.Show(new CancellationTokenSource(durationMs).Token);
             });
         }
 

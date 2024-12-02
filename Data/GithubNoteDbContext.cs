@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using GithubNote.NET.Models;
 using System;
+using System.Collections.Generic;
+using System.Text.Json;
 
 namespace GithubNote.NET.Data
 {
@@ -34,8 +36,8 @@ namespace GithubNote.NET.Data
                 // 将Tags存储为JSON数组
                 entity.Property(e => e.Tags)
                     .HasConversion(
-                        v => System.Text.Json.JsonSerializer.Serialize(v, (JsonSerializerOptions)null),
-                        v => System.Text.Json.JsonSerializer.Deserialize<List<string>>(v, (JsonSerializerOptions)null));
+                        v => JsonSerializer.Serialize(v, new JsonSerializerOptions()),
+                        v => JsonSerializer.Deserialize<List<string>>(v, new JsonSerializerOptions()));
 
                 // 配置与Comment的一对多关系
                 entity.HasMany(e => e.Comments)
@@ -56,8 +58,8 @@ namespace GithubNote.NET.Data
                     metadata.Property(e => e.Format).IsRequired();
                     metadata.Property(e => e.CustomProperties)
                         .HasConversion(
-                            v => System.Text.Json.JsonSerializer.Serialize(v, (JsonSerializerOptions)null),
-                            v => System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(v, (JsonSerializerOptions)null));
+                            v => JsonSerializer.Serialize(v, new JsonSerializerOptions()),
+                            v => JsonSerializer.Deserialize<Dictionary<string, string>>(v, new JsonSerializerOptions()));
                 });
             });
 

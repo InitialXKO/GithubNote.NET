@@ -13,9 +13,9 @@ namespace GithubNote.NET.Cache
 
         public DistributedCacheService(
             IDistributedCache cache,
-            IOptions<DistributedCacheEntryOptions> options = null)
+            IOptions<DistributedCacheEntryOptions>? options = default)
         {
-            _cache = cache;
+            _cache = cache ?? throw new ArgumentNullException(nameof(cache));
             _defaultOptions = options?.Value ?? new DistributedCacheEntryOptions
             {
                 AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30)
