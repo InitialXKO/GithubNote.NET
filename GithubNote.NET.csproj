@@ -12,8 +12,8 @@
     <!-- Windows App SDK Configuration -->
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
     <WindowsPackageType>None</WindowsPackageType>
-    <EnableMsixTooling>true</EnableMsixTooling>
-    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <EnablePreviewMsixTooling>true</EnablePreviewMsixTooling>
+    <RuntimeIdentifier Condition="'$(Platform)'==''">win-x64</RuntimeIdentifier>
 
     <!-- Display name -->
     <ApplicationTitle>GithubNote.NET</ApplicationTitle>
