@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using System;
@@ -5,8 +6,13 @@ using System;
 namespace GithubNote.NET.Authentication
 {
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
-    public class AuthorizeAttribute : Attribute, IAuthorizationFilter
+    public class AuthorizeAttribute : Microsoft.AspNetCore.Authorization.AuthorizeAttribute, IAuthorizationFilter
     {
+        public AuthorizeAttribute()
+        {
+            AuthenticationSchemes = "Bearer";
+        }
+
         public void OnAuthorization(AuthorizationFilterContext context)
         {
             var user = context.HttpContext.Items["User"];
