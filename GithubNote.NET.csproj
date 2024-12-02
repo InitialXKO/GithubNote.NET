@@ -13,7 +13,8 @@
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
     <WindowsPackageType>None</WindowsPackageType>
     <EnablePreviewMsixTooling>true</EnablePreviewMsixTooling>
-    <RuntimeIdentifier Condition="'$(Platform)'==''">win-x64</RuntimeIdentifier>
+    <RuntimeIdentifier>win10-x64</RuntimeIdentifier>
+    <RuntimeIdentifiers>win10-x64</RuntimeIdentifiers>
 
     <!-- Display name -->
     <ApplicationTitle>GithubNote.NET</ApplicationTitle>
